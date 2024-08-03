@@ -93,6 +93,10 @@ public class JavaInnerBuilderGenerator implements Runnable {
             addMethod(targetClass, null, toBuilderMethod, true);
         }
 
+        //builder constructor
+        var builderConstructor = generateBuilderConstructor();
+        addMethod(builderClass, null, builderConstructor, false);
+
         // builder methods
         PsiElement lastAddedElement = null;
         for (var member : fieldMembers) {
@@ -106,6 +110,12 @@ public class JavaInnerBuilderGenerator implements Runnable {
 
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(file);
         CodeStyleManager.getInstance(project).reformat(builderClass);
+    }
+
+    private PsiMethod generateBuilderConstructor() {
+        var builderConstructor = psiElementFactory.createConstructor(BUILDER_CLASS_NAME);
+        PsiUtil.setModifierProperty(builderConstructor, PsiModifier.PRIVATE, true);
+        return builderConstructor;
     }
 
     private PsiMethod generateToBuilderMethod(final PsiType builderType,
