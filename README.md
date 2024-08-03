@@ -2,10 +2,22 @@
 
 # An opinionated Java Inner Builder Generator
 
-This is a simple Java Inner Builder Generator IntelliJ plugin that generates a
+This is an opinionated but simple Java Inner Builder Generator IntelliJ plugin that generates a
 builder for a given class. The builder is an inner class of the class it is building.
 
 Based from [InnerBuilder](https://github.com/analytically/innerbuilder) with stripped down features.
+
+Generates a builder class for a given class with the following features:
+
+1. Generates builder method for final fields that are not initialized and/or static fields
+2. Generates static `builder()` method inside the parent class
+3. Uses field names as setters in the builder
+
+Optional features:
+
+1. Generates `toBuilder()` method to convert the object to a builder
+2. Generates `validate()` method to validate the fields before building the object
+
 <!-- Plugin description end -->
 
 ```java
@@ -25,7 +37,6 @@ public class Person {
         return new Builder();
     }
 
-
     public static final class Builder {
         private int age;
         private String lastName;
@@ -43,14 +54,18 @@ public class Person {
             return this;
         }
 
+        private void validate() {
+        }
+
         public Person build() {
+            validate();
             return new Person(this);
         }
     }
 }
 ```
 
-Supports Java record classes and automatically detects the class visibility
+Supports Java record classes
 
 ```java
 record Address(String street, String city, String state, String country) {

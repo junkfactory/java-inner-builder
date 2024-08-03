@@ -23,8 +23,12 @@ public class JavaInnerBuilderOptionSelector {
     private static List<SelectorOption> createGeneratorOptions() {
         var options = new ArrayList<SelectorOption>();
         options.add(new CheckboxSelectorOption(
-                JavaInnerBuilderOption.TO_BUILDER,
+                JavaInnerBuilderOption.WITH_TO_BUILDER_METHOD,
                 'o'
+        ));
+        options.add(new CheckboxSelectorOption(
+                JavaInnerBuilderOption.WITH_VALIDATE_METHOD,
+                'v'
         ));
         return options;
     }

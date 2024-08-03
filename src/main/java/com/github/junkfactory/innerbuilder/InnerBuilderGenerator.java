@@ -24,12 +24,12 @@ class InnerBuilderGenerator extends AbstractGenerator {
 
     @Override
     public void run() {
-        var file = generatorParams.file();
+        var file = generatorParams.psi().file();
         var targetClass = Utils.getStaticOrTopLevelClass(file, generatorParams.editor());
-        if (targetClass == null) {
+        if (targetClass == null || BUILDER_CLASS_NAME.equals(targetClass.getName())) {
             return;
         }
-        var psiElementFactory = generatorParams.psiElementFactory();
+        var psiElementFactory = generatorParams.psi().factory();
         var builderClass = findOrCreateBuilderClass(targetClass);
         var builderType = psiElementFactory.createTypeFromText(BUILDER_CLASS_NAME, null);
 
@@ -42,9 +42,9 @@ class InnerBuilderGenerator extends AbstractGenerator {
         addMethod(targetClass, null, newBuilderMethod, false);
 
         // toBuilder method
-        var options = JavaInnerBuilderOption.currentOptions();
-        if (options.contains(JavaInnerBuilderOption.TO_BUILDER)) {
-            var toBuilderMethod = generateToBuilderMethod(builderType, generatorParams.selectedFields());
+        var options = generatorParams.options();
+        if (options.contains(JavaInnerBuilderOption.WITH_TO_BUILDER_METHOD)) {
+            var toBuilderMethod = generateToBuilderMethod(builderType, generatorParams.psi().selectedFields());
             addMethod(targetClass, null, toBuilderMethod, true);
         }
 
@@ -57,7 +57,7 @@ class InnerBuilderGenerator extends AbstractGenerator {
 
     private PsiMethod generateToBuilderMethod(final PsiType builderType,
                                               final Collection<PsiFieldMember> fields) {
-        var psiElementFactory = generatorParams.psiElementFactory();
+        var psiElementFactory = generatorParams.psi().factory();
         var toBuilderMethod = psiElementFactory.createMethod(TO_BUILDER_NAME, builderType);
         PsiUtil.setModifierProperty(toBuilderMethod, PsiModifier.PUBLIC, true);
         var toBuilderBody = Objects.requireNonNull(toBuilderMethod.getBody());
@@ -74,14 +74,14 @@ class InnerBuilderGenerator extends AbstractGenerator {
         var methodBody = Objects.requireNonNull(method.getBody());
         for (final PsiFieldMember member : fields) {
             var field = member.getElement();
-            var assignStatement = generatorParams.psiElementFactory().createStatementFromText(String.format(
+            var assignStatement = generatorParams.psi().factory().createStatementFromText(String.format(
                     "%s%2$s = this.%3$s;", "builder.", field.getName(), field.getName()), method);
             methodBody.add(assignStatement);
         }
     }
 
     private PsiMethod generateStaticBuilderMethod(final PsiType builderType) {
-        var psiElementFactory = generatorParams.psiElementFactory();
+        var psiElementFactory = generatorParams.psi().factory();
         var newBuilderMethod = psiElementFactory.createMethod(BUILDER_METHOD_NAME, builderType);
         PsiUtil.setModifierProperty(newBuilderMethod, PsiModifier.STATIC, true);
         PsiUtil.setModifierProperty(newBuilderMethod, PsiModifier.PUBLIC, true);
@@ -94,7 +94,7 @@ class InnerBuilderGenerator extends AbstractGenerator {
     }
 
     private PsiMethod generateConstructor(final PsiClass targetClass, final PsiType builderType) {
-        var psiElementFactory = generatorParams.psiElementFactory();
+        var psiElementFactory = generatorParams.psi().factory();
         var constructor = psiElementFactory.createConstructor(Objects.requireNonNull(targetClass.getName()));
         constructor.getModifierList().setModifierProperty(PsiModifier.PRIVATE, true);
 
@@ -102,7 +102,7 @@ class InnerBuilderGenerator extends AbstractGenerator {
         constructor.getParameterList().add(builderParameter);
 
         var constructorBody = Objects.requireNonNull(constructor.getBody());
-        for (var member : generatorParams.selectedFields()) {
+        for (var member : generatorParams.psi().selectedFields()) {
             var field = member.getElement();
             var setterPrototype = PropertyUtilBase.generateSetterPrototype(field);
             var setter = targetClass.findMethodBySignature(setterPrototype, true);
@@ -143,7 +143,7 @@ class InnerBuilderGenerator extends AbstractGenerator {
 
     @NotNull
     private PsiClass createBuilderClass(final PsiClass targetClass) {
-        var builderClass = (PsiClass) targetClass.add(generatorParams.psiElementFactory()
+        var builderClass = (PsiClass) targetClass.add(generatorParams.psi().factory()
                 .createClass(BUILDER_CLASS_NAME));
         PsiUtil.setModifierProperty(builderClass, PsiModifier.STATIC, true);
         PsiUtil.setModifierProperty(builderClass, PsiModifier.FINAL, true);
