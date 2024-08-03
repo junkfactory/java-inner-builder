@@ -34,7 +34,7 @@ class BuilderClassGenerator extends AbstractGenerator {
 
     @Override
     public void run() {
-        var selectedFields = generatorParams.selectedFields();
+        var selectedFields = generatorParams.psi().selectedFields();
         var fieldMembers = new ArrayList<PsiFieldMember>();
         PsiElement lastAddedField = null;
         for (var fieldMember : selectedFields) {
@@ -58,7 +58,7 @@ class BuilderClassGenerator extends AbstractGenerator {
     }
 
     private PsiMethod generateBuilderConstructor() {
-        var builderConstructor = generatorParams.psiElementFactory().createConstructor(BUILDER_CLASS_NAME);
+        var builderConstructor = generatorParams.psi().factory().createConstructor(BUILDER_CLASS_NAME);
         PsiUtil.setModifierProperty(builderConstructor, PsiModifier.PRIVATE, true);
         return builderConstructor;
     }
@@ -70,7 +70,7 @@ class BuilderClassGenerator extends AbstractGenerator {
         var fieldName = Utils.hasOneLetterPrefix(field.getName()) ?
                 Character.toLowerCase(field.getName().charAt(1)) + field.getName().substring(2) : field.getName();
 
-        var psiElementFactory = generatorParams.psiElementFactory();
+        var psiElementFactory = generatorParams.psi().factory();
         var setterMethod = psiElementFactory.createMethod(fieldName, builderType);
 
         setterMethod.getModifierList().setModifierProperty(PsiModifier.PUBLIC, true);
@@ -87,7 +87,7 @@ class BuilderClassGenerator extends AbstractGenerator {
     }
 
     private PsiMethod generateBuildMethod(final PsiClass targetClass, final List<PsiFieldMember> selectedFields) {
-        var psiElementFactory = generatorParams.psiElementFactory();
+        var psiElementFactory = generatorParams.psi().factory();
         var targetClassType = psiElementFactory.createType(targetClass);
         var buildMethod = psiElementFactory.createMethod("build", targetClassType);
 
@@ -124,7 +124,7 @@ class BuilderClassGenerator extends AbstractGenerator {
             if (existingField != null) {
                 existingField.delete();
             }
-            var newField = generatorParams.psiElementFactory().createField(fieldName, fieldType);
+            var newField = generatorParams.psi().factory().createField(fieldName, fieldType);
             if (last != null) {
                 return builderClass.addAfter(newField, last);
             } else {
