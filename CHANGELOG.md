@@ -5,4 +5,3 @@
 ## [Unreleased]
 
 - See [Releases](https://github.com/junkfactory/java-inner-builder/releases) for full changelog
-

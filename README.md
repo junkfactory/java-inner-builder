@@ -106,3 +106,10 @@ record Address(String street, String city, String state, String country) {
     }
 }
 ```
+
+## Installation
+
+1. Download plugin zip file from [Releases](https://github.com/junkfactory/java-inner-builder/releases)
+2. Open IntelliJ IDEA, go to `File -> Settings -> Plugins`
+3. Click on the gear icon and select `Install Plugin from Disk...`
+4. Select the downloaded zip file and click `OK`

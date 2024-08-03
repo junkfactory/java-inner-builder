@@ -18,6 +18,9 @@ jobs:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -25,15 +28,24 @@ jobs:
           distribution: zulu
           java-version: 17
           cache: gradle
+
+      # Setup Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+
       - name: Build Plugin
         run: |
-          ./gradlew buildPlugin --no-daemon
+          VERSION=${{ github.ref_name }}
+          ./gradlew buildPlugin -PpluginVersion="${VERSION:1}"
+
       - name: Publish Release
         env:
           DIST_DIR: "./build/distributions"
         run: |
+          VERSION=${{ github.ref_name }}
           PROJECT_NAME="$(basename ${{ github.repository }})"
-          PKG="$PROJECT_NAME-${{ github.ref_name }}.zip"
+          PKG="$PROJECT_NAME-${VERSION:1}.zip"
           ls -l "$DIST_DIR"
-          mv "$DIST_DIR/$PROJECT_NAME-snapshot.zip" "$DIST_DIR/$PKG"
           gh release create ${{ github.ref_name }} "$DIST_DIR/$PKG" --generate-notes
