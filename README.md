@@ -1,9 +1,12 @@
+<!-- Plugin description -->
+
 # An opinionated Java Inner Builder Generator
 
 This is a simple Java Inner Builder Generator IntelliJ plugin that generates a
 builder for a given class. The builder is an inner class of the class it is building.
 
 Based from [InnerBuilder](https://github.com/analytically/innerbuilder) with stripped down features.
+<!-- Plugin description end -->
 
 ```java
 public class Person {
