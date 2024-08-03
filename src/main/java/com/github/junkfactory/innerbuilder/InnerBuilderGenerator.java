@@ -26,7 +26,7 @@ class InnerBuilderGenerator extends AbstractGenerator {
     public void run() {
         var file = generatorParams.psi().file();
         var targetClass = Utils.getStaticOrTopLevelClass(file, generatorParams.editor());
-        if (targetClass == null) {
+        if (targetClass == null || BUILDER_CLASS_NAME.equals(targetClass.getName())) {
             return;
         }
         var psiElementFactory = generatorParams.psi().factory();
@@ -43,7 +43,7 @@ class InnerBuilderGenerator extends AbstractGenerator {
 
         // toBuilder method
         var options = generatorParams.options();
-        if (options.contains(JavaInnerBuilderOption.TO_BUILDER)) {
+        if (options.contains(JavaInnerBuilderOption.WITH_TO_BUILDER_METHOD)) {
             var toBuilderMethod = generateToBuilderMethod(builderType, generatorParams.psi().selectedFields());
             addMethod(targetClass, null, toBuilderMethod, true);
         }

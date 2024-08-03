@@ -1,5 +1,6 @@
 package com.github.junkfactory.innerbuilder;
 
+import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
@@ -11,7 +12,6 @@ import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,6 +34,11 @@ class BuilderClassGenerator extends AbstractGenerator {
 
     @Override
     public void run() {
+        //builder constructor
+        var builderConstructor = generateBuilderConstructor();
+        addMethod(builderClass, null, builderConstructor, false);
+
+        //build setters
         var selectedFields = generatorParams.psi().selectedFields();
         var fieldMembers = new ArrayList<PsiFieldMember>();
         PsiElement lastAddedField = null;
@@ -41,20 +46,31 @@ class BuilderClassGenerator extends AbstractGenerator {
             lastAddedField = findOrCreateField(builderClass, fieldMember, lastAddedField);
             fieldMembers.add(fieldMember);
         }
-        //builder constructor
-        var builderConstructor = generateBuilderConstructor();
-        addMethod(builderClass, null, builderConstructor, false);
 
-        // builder methods
         PsiElement lastAddedElement = null;
         for (var member : fieldMembers) {
             var setterMethod = generateBuilderSetter(builderType, member);
             lastAddedElement = addMethod(builderClass, lastAddedElement, setterMethod, false);
         }
 
+        //build validate method
+        var options = generatorParams.options();
+        if (options.contains(JavaInnerBuilderOption.WITH_VALIDATE_METHOD)) {
+            var validateMethod = generateValidateMethod();
+            addMethod(builderClass, lastAddedElement, validateMethod, false);
+        }
+
         // builder.build() method
-        var buildMethod = generateBuildMethod(targetClass, selectedFields);
-        addMethod(builderClass, lastAddedElement, buildMethod, targetClass.isRecord());
+        var buildMethod = generateBuildMethod();
+        addMethod(builderClass, null, buildMethod, targetClass.isRecord());
+    }
+
+    private PsiMethod generateValidateMethod() {
+        var psiElementFactory = generatorParams.psi().factory();
+        var voidType = psiElementFactory.createPrimitiveType("void");
+        var validateMethod = psiElementFactory.createMethod("validate", voidType);
+        PsiUtil.setModifierProperty(validateMethod, PsiModifier.PRIVATE, true);
+        return validateMethod;
     }
 
     private PsiMethod generateBuilderConstructor() {
@@ -86,7 +102,7 @@ class BuilderClassGenerator extends AbstractGenerator {
         return setterMethod;
     }
 
-    private PsiMethod generateBuildMethod(final PsiClass targetClass, final List<PsiFieldMember> selectedFields) {
+    private PsiMethod generateBuildMethod() {
         var psiElementFactory = generatorParams.psi().factory();
         var targetClassType = psiElementFactory.createType(targetClass);
         var buildMethod = psiElementFactory.createMethod("build", targetClassType);
@@ -98,9 +114,14 @@ class BuilderClassGenerator extends AbstractGenerator {
                 .ifPresent(modifier -> PsiUtil.setModifierProperty(buildMethod, modifier, true));
 
         var buildMethodBody = Objects.requireNonNull(buildMethod.getBody());
+        if (generatorParams.options().contains(JavaInnerBuilderOption.WITH_VALIDATE_METHOD)) {
+            var validateCall = psiElementFactory.createStatementFromText("validate();", buildMethod);
+            buildMethodBody.add(validateCall);
+        }
+
         final PsiStatement returnStatement;
         if (targetClass.isRecord()) {
-            var recordParameters = selectedFields.stream()
+            var recordParameters = generatorParams.psi().selectedFields().stream()
                     .map(m -> m.getElement().getName())
                     .collect(Collectors.joining(", "));
             returnStatement = psiElementFactory.createStatementFromText(String.format(
@@ -109,6 +130,7 @@ class BuilderClassGenerator extends AbstractGenerator {
             returnStatement = psiElementFactory.createStatementFromText(String.format(
                     "return new %s(this);", targetClass.getName()), buildMethod);
         }
+
         buildMethodBody.add(returnStatement);
         return buildMethod;
     }
@@ -119,8 +141,7 @@ class BuilderClassGenerator extends AbstractGenerator {
         var fieldName = field.getName();
         var fieldType = field.getType();
         var existingField = builderClass.findFieldByName(fieldName, false);
-        if (existingField == null ||
-                Utils.areTypesPresentableNotEqual(existingField.getType(), fieldType)) {
+        if (existingField == null || Utils.areTypesPresentableNotEqual(existingField.getType(), fieldType)) {
             if (existingField != null) {
                 existingField.delete();
             }
