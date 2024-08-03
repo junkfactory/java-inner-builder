@@ -10,6 +10,7 @@ on:
 
 jobs:
   release:
+    name: Create Release
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,7 +28,12 @@ jobs:
       - name: Build Plugin
         run: |
           ./gradlew buildPlugin --no-daemon
-          PKG="$(basename ${{ github.repository }})-${{ github.ref_name }}.zip"
-          ls -l ./build/distributions
-          mv ./build/distributions/${{ github.repository }}-snapshot.zip "$PKG"
-          gh release create ${{ github.ref_name }} "./build/distributions/$PKG" --generate-notes
+      - name: Publish Release
+        env:
+          DIST_DIR: "./build/distributions"
+        run: |
+          PROJECT_NAME="$(basename ${{ github.repository }})"
+          PKG="$PROJECT_NAME-${{ github.ref_name }}.zip"
+          ls -l "$DIST_DIR"
+          mv "$DIST_DIR/$PROJECT_NAME-snapshot.zip" "$DIST_DIR/$PKG"
+          gh release create ${{ github.ref_name }} "$DIST_DIR/$PKG" --generate-notes
