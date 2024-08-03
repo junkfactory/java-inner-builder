@@ -21,9 +21,9 @@ import java.util.Objects;
 
 import static com.intellij.openapi.util.text.StringUtil.hasLowerCaseChar;
 
-public class JavaInnerBuilderCollector {
+public class FieldCollector {
 
-    private JavaInnerBuilderCollector() {
+    private FieldCollector() {
     }
 
     @NotNull

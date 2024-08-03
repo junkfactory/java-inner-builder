@@ -15,11 +15,11 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class JavaInnerBuilderUtils {
+class Utils {
     @NonNls
     static final String JAVA_DOT_LANG = "java.lang.";
 
-    private JavaInnerBuilderUtils() {
+    private Utils() {
     }
 
     static boolean hasOneLetterPrefix(String str) {
@@ -44,7 +44,7 @@ class JavaInnerBuilderUtils {
             var param1Param = param1Params[i];
             var param2Param = param2Params[i];
 
-            if (!areTypesPresentableEqual(param1Param.getType(), param2Param.getType())) {
+            if (areTypesPresentableNotEqual(param1Param.getType(), param2Param.getType())) {
                 return false;
             }
         }
@@ -52,13 +52,13 @@ class JavaInnerBuilderUtils {
         return true;
     }
 
-    static boolean areTypesPresentableEqual(PsiType type1, PsiType type2) {
+    static boolean areTypesPresentableNotEqual(PsiType type1, PsiType type2) {
         if (type1 != null && type2 != null) {
             var type1Canonical = stripJavaLang(type1.getPresentableText());
             var type2Canonical = stripJavaLang(type2.getPresentableText());
-            return type1Canonical.equals(type2Canonical);
+            return !type1Canonical.equals(type2Canonical);
         }
-        return false;
+        return true;
     }
 
     /**

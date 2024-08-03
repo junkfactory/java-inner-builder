@@ -1,19 +1,18 @@
 package com.github.junkfactory.innerbuilder;
 
-import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.lang.LanguageCodeInsightActionHandler;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorModificationUtil;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-
-import static com.github.junkfactory.innerbuilder.JavaInnerBuilderCollector.collectFields;
+import static com.github.junkfactory.innerbuilder.FieldCollector.collectFields;
 import static com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOptionSelector.selectFieldsAndOptions;
 
 public class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
@@ -28,7 +27,7 @@ public class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler
             return false;
         }
 
-        return JavaInnerBuilderUtils.getStaticOrTopLevelClass(file, editor) != null && isApplicable(file, editor);
+        return Utils.getStaticOrTopLevelClass(file, editor) != null && isApplicable(file, editor);
     }
 
     @Override
@@ -37,7 +36,7 @@ public class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler
     }
 
     private static boolean isApplicable(final PsiFile file, final Editor editor) {
-        final List<PsiFieldMember> targetElements = collectFields(file, editor);
+        var targetElements = collectFields(file, editor);
         return !targetElements.isEmpty();
     }
 
@@ -65,7 +64,10 @@ public class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler
             if (selectedFields.isEmpty()) {
                 return;
             }
-            JavaInnerBuilderGenerator.generate(project, editor, file, selectedFields);
+            var generatorParams = new GeneratorParams(project, file, editor, selectedFields,
+                    JavaPsiFacade.getElementFactory(project));
+            var builderGenerator = new InnerBuilderGenerator(generatorParams);
+            ApplicationManager.getApplication().runWriteAction(builderGenerator);
         }
     }
 

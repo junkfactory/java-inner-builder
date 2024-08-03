@@ -32,7 +32,7 @@
     </extensions>
 
     <actions>
-        <action class="com.github.junkfactory.innerbuilder.JavaInnerBuilderAction"
+        <action class="com.github.junkfactory.innerbuilder.InnerBuilderAction"
                 id="JavaInnerBuilder.generate"
                 text="Generate Inner Builder"
                 description="${project.description}">

@@ -3,7 +3,7 @@
 This is a simple Java Inner Builder Generator IntelliJ plugin that generates a
 builder for a given class. The builder is an inner class of the class it is building.
 
-Automatically detects the target class access modifier
+Based from [InnerBuilder](https://github.com/analytically/innerbuilder) with stripped down features.
 
 ```java
 public class Person {
@@ -27,6 +27,9 @@ public class Person {
         private int age;
         private String lastName;
 
+        private Builder() {
+        }
+
         public Builder age(int age) {
             this.age = age;
             return this;
@@ -42,10 +45,9 @@ public class Person {
         }
     }
 }
-
 ```
 
-Supports Java record classes
+Supports Java record classes and automatically detects the class visibility
 
 ```java
 record Address(String street, String city, String state, String country) {
@@ -70,6 +72,9 @@ record Address(String street, String city, String state, String country) {
         private String city;
         private String state;
         private String country;
+
+        private Builder() {
+        }
 
         public Builder street(String street) {
             this.street = street;
