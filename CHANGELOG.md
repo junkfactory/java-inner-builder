@@ -4,8 +4,5 @@
 
 ## [Unreleased]
 
-### Added
+- See [Releases](https://github.com/junkfactory/java-inner-builder/releases) for full changelog
 
-## 0.0.1
-
-- Initial release
