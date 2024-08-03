@@ -44,5 +44,8 @@ jobs:
         env:
           DIST_DIR: "./build/distributions"
         run: |
+          VERSION=${{ github.ref_name }}
+          PROJECT_NAME="$(basename ${{ github.repository }})"
+          PKG="$PROJECT_NAME-${VERSION:1}.zip"
           ls -l "$DIST_DIR"
-          gh release create ${{ github.ref_name }} "$DIST_DIR/*" --generate-notes
+          gh release create ${{ github.ref_name }} "$DIST_DIR/$PKG" --generate-notes
