@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.openapi.editor.Editor;
@@ -23,6 +23,8 @@ import static com.intellij.openapi.util.text.StringUtil.hasLowerCaseChar;
 
 public class FieldCollector {
 
+    private static final String OBJECT_CLASS_NAME = "Object";
+
     private FieldCollector() {
     }
 
@@ -43,36 +45,39 @@ public class FieldCollector {
 
         PsiClass classToExtractFieldsFrom = clazz;
         while (classToExtractFieldsFrom != null) {
-            final List<PsiFieldMember> classFieldMembers = collectFieldsInClass(element, clazz,
-                    classToExtractFieldsFrom);
+            var classFieldMembers = collectFieldsInClass(element, clazz, classToExtractFieldsFrom);
             allFields.addAll(0, classFieldMembers);
-
             classToExtractFieldsFrom = classToExtractFieldsFrom.getSuperClass();
         }
 
         return allFields;
     }
 
-    private static List<PsiFieldMember> collectFieldsInClass(final PsiElement element, final PsiClass accessObjectClass,
-                                                             final PsiClass clazz) {
-        var helper = JavaPsiFacade.getInstance(clazz.getProject()).getResolveHelper();
-        return Arrays.stream(clazz.getFields())
-                .filter(field -> helper.isAccessible(field, clazz, accessObjectClass) ||
-                        hasSetter(clazz, field.getName()))
+    private static List<PsiFieldMember> collectFieldsInClass(final PsiElement element,
+                                                             final PsiClass accessObjectClass,
+                                                             final PsiClass classToExtractFieldsFrom) {
+        if (AbstractGenerator.BUILDER_CLASS_NAME.equals(classToExtractFieldsFrom.getName()) ||
+                OBJECT_CLASS_NAME.equals(classToExtractFieldsFrom.getName())) {
+            return List.of();
+        }
+        var helper = JavaPsiFacade.getInstance(classToExtractFieldsFrom.getProject()).getResolveHelper();
+        return Arrays.stream(classToExtractFieldsFrom.getFields())
+                .filter(field -> helper.isAccessible(field, classToExtractFieldsFrom, accessObjectClass) ||
+                        hasSetter(classToExtractFieldsFrom, field.getName()))
                 .filter(field -> !PsiTreeUtil.isAncestor(field, element, false))
                 .filter(field -> !field.hasModifierProperty(PsiModifier.STATIC))
                 .filter(field -> hasLowerCaseChar(field.getName()))
                 .filter(field -> {
                     if (field.hasModifierProperty(PsiModifier.FINAL)) {
-                        if (field.getInitializer() != null) {
+                        if (field.hasInitializer()) {
                             return false;
                         }
-                        return accessObjectClass.isEquivalentTo(clazz);
+                        return accessObjectClass.isEquivalentTo(classToExtractFieldsFrom);
                     }
                     return true;
                 })
                 .filter(field -> Objects.nonNull(field.getContainingClass()))
-                .map(field -> buildFieldMember(field, field.getContainingClass(), clazz))
+                .map(field -> buildFieldMember(field, field.getContainingClass(), classToExtractFieldsFrom))
                 .toList();
     }
 

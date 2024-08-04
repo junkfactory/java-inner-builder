@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiClass;
@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class Utils {
+public class Utils {
     @NonNls
     static final String JAVA_DOT_LANG = "java.lang.";
 
@@ -67,7 +67,7 @@ class Utils {
      * @return psiClass if class is static or top level. Otherwise returns {@code null}
      */
     @Nullable
-    static PsiClass getStaticOrTopLevelClass(PsiFile file, Editor editor) {
+    public static PsiClass getStaticOrTopLevelClass(PsiFile file, Editor editor) {
         var offset = editor.getCaretModel().getOffset();
         var element = file.findElementAt(offset);
         if (element == null) {

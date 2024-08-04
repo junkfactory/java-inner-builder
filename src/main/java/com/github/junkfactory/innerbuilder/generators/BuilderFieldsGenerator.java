@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiClass;
@@ -8,21 +8,18 @@ import org.jetbrains.annotations.Nullable;
 class BuilderFieldsGenerator extends AbstractGenerator {
 
     private final BuilderClassParams builderClassParams;
-    private PsiElement lastAddedField;
 
-    BuilderFieldsGenerator(GeneratorParams generatorParams, BuilderClassParams builderClassParams) {
-        super(generatorParams);
+    BuilderFieldsGenerator(GeneratorFactory generatorFactory,
+                           GeneratorParams generatorParams,
+                           BuilderClassParams builderClassParams) {
+        super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
-    }
-
-    public PsiElement getLastAddedField() {
-        return lastAddedField;
     }
 
     @Override
     public void run() {
-        var selectedFields = generatorParams.psi().selectedFields();
-        for (var fieldMember : selectedFields) {
+        PsiElement lastAddedField = null;
+        for (var fieldMember : generatorParams.psi().selectedFields()) {
             lastAddedField = findOrCreateField(builderClassParams.builderClass(), fieldMember, lastAddedField);
         }
     }

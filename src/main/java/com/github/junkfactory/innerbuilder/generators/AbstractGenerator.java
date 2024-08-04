@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
@@ -10,15 +10,17 @@ import org.jetbrains.annotations.Nullable;
 abstract class AbstractGenerator implements Runnable {
 
     @NonNls
-    protected static final String BUILDER_CLASS_NAME = "Builder";
+    static final String BUILDER_CLASS_NAME = "Builder";
     @NonNls
-    protected static final String BUILDER_METHOD_NAME = "builder";
+    static final String BUILDER_METHOD_NAME = "builder";
     @NonNls
-    protected static final String TO_BUILDER_NAME = "toBuilder";
+    static final String TO_BUILDER_NAME = "toBuilder";
 
-    protected GeneratorParams generatorParams;
+    protected final GeneratorFactory generatorFactory;
+    protected final GeneratorParams generatorParams;
 
-    protected AbstractGenerator(GeneratorParams generatorParams) {
+    protected AbstractGenerator(GeneratorFactory generatorFactory, GeneratorParams generatorParams) {
+        this.generatorFactory = generatorFactory;
         this.generatorParams = generatorParams;
     }
 

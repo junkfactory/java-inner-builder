@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;

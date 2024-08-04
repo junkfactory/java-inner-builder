@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiElementFactory;

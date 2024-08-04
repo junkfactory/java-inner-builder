@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
@@ -17,8 +17,10 @@ class BuilderMethodsGenerator extends AbstractGenerator {
 
     private final BuilderClassParams builderClassParams;
 
-    public BuilderMethodsGenerator(GeneratorParams generatorParams, BuilderClassParams builderClassParams) {
-        super(generatorParams);
+    BuilderMethodsGenerator(GeneratorFactory generatorFactory,
+                            GeneratorParams generatorParams,
+                            BuilderClassParams builderClassParams) {
+        super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
     }
 
@@ -31,14 +33,12 @@ class BuilderMethodsGenerator extends AbstractGenerator {
             lastAddedElement = addMethod(builderClass, lastAddedElement, setterMethod, false);
         }
 
-        //build validate method
         var options = generatorParams.options();
         if (options.contains(JavaInnerBuilderOption.WITH_VALIDATE_METHOD)) {
             var validateMethod = generateValidateMethod();
             addMethod(builderClass, lastAddedElement, validateMethod, false);
         }
 
-        // builder.build() method
         var buildMethod = generateBuildMethod();
         addMethod(builderClass, null, buildMethod, builderClassParams.builderClass().isRecord());
     }

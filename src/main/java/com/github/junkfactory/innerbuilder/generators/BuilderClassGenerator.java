@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
@@ -7,10 +7,16 @@ import com.intellij.psi.util.PsiUtil;
 class BuilderClassGenerator extends AbstractGenerator {
 
     private final BuilderClassParams builderClassParams;
+    private final Runnable fieldsGenerator;
+    private final Runnable methodsGenerator;
 
-    BuilderClassGenerator(GeneratorParams generatorParams, BuilderClassParams builderClassParams) {
-        super(generatorParams);
+    BuilderClassGenerator(GeneratorFactory generatorFactory,
+                          GeneratorParams generatorParams,
+                          BuilderClassParams builderClassParams) {
+        super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
+        this.fieldsGenerator = generatorFactory.createBuilderFieldsGenerator(generatorParams, builderClassParams);
+        this.methodsGenerator = generatorFactory.createBuilderMethodsGenerator(generatorParams, builderClassParams);
     }
 
     @Override
@@ -20,8 +26,8 @@ class BuilderClassGenerator extends AbstractGenerator {
         var builderConstructor = generateBuilderConstructor();
         addMethod(builderClass, null, builderConstructor, false);
 
-        new BuilderFieldsGenerator(generatorParams, builderClassParams).run();
-        new BuilderMethodsGenerator(generatorParams, builderClassParams).run();
+        fieldsGenerator.run();
+        methodsGenerator.run();
     }
 
     private PsiMethod generateBuilderConstructor() {

@@ -8,7 +8,7 @@ import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
 public class InnerBuilderAction extends BaseCodeInsightAction {
-    private final JavaInnerBuilderHandler handler = new JavaInnerBuilderHandler();
+    private static final JavaInnerBuilderHandler handler = new JavaInnerBuilderHandler();
 
     @NotNull
     @Override
