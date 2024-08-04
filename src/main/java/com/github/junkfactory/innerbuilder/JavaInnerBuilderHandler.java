@@ -71,25 +71,28 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
         }
 
         var existingFields = collectFields(file, editor);
-        if (!existingFields.isEmpty()) {
-            var selectedFields = selectFieldsAndOptions(existingFields, project);
-            if (selectedFields.isEmpty()) {
-                return;
-            }
-            var psiParams = PsiParams.builder()
-                    .file(file)
-                    .selectedFields(selectedFields)
-                    .factory(JavaPsiFacade.getElementFactory(project))
-                    .build();
-            var generatorParams = GeneratorParams.builder()
-                    .project(project)
-                    .editor(editor)
-                    .psi(psiParams)
-                    .options(currentOptions())
-                    .build();
-            var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
-            ApplicationManager.getApplication().runWriteAction(builderGenerator);
+        if (existingFields.isEmpty()) {
+            return;
         }
+
+        var selectedFields = selectFieldsAndOptions(existingFields, project);
+        if (selectedFields.isEmpty()) {
+            return;
+        }
+
+        var psiParams = PsiParams.builder()
+                .file(file)
+                .selectedFields(selectedFields)
+                .factory(JavaPsiFacade.getElementFactory(project))
+                .build();
+        var generatorParams = GeneratorParams.builder()
+                .project(project)
+                .editor(editor)
+                .psi(psiParams)
+                .options(currentOptions())
+                .build();
+        var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
+        ApplicationManager.getApplication().runWriteAction(builderGenerator);
     }
 
     private Set<JavaInnerBuilderOption> currentOptions() {

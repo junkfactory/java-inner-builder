@@ -36,6 +36,10 @@ class BuilderFieldsGenerator extends AbstractGenerator {
                 existingField.delete();
             }
             var newField = psiFactory.createField(fieldName, fieldType);
+            newField.setInitializer(field.getInitializer());
+            if (!builderClassParams.targetClass().isRecord()) {
+                field.setInitializer(null);
+            }
             if (last != null) {
                 return builderClass.addAfter(newField, last);
             } else {

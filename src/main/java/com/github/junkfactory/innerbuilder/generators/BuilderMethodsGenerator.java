@@ -2,11 +2,11 @@ package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiStatement;
-import com.intellij.psi.PsiType;
 import com.intellij.psi.util.PsiUtil;
 
 import java.util.Objects;
@@ -29,7 +29,7 @@ class BuilderMethodsGenerator extends AbstractGenerator {
         var builderClass = builderClassParams.builderClass();
         PsiElement lastAddedElement = null;
         for (var member : generatorParams.psi().selectedFields()) {
-            var setterMethod = generateBuilderSetter(builderClassParams.builderType(), member);
+            var setterMethod = generateFieldMethod(member);
             lastAddedElement = addMethod(builderClass, lastAddedElement, setterMethod, false);
         }
 
@@ -51,7 +51,40 @@ class BuilderMethodsGenerator extends AbstractGenerator {
         return validateMethod;
     }
 
-    private PsiMethod generateBuilderSetter(final PsiType builderType, final PsiFieldMember member) {
+    private PsiMethod generateFieldMethod(PsiFieldMember member) {
+        var addMethod = Utils.findFieldAddMethod(builderClassParams.builderClass(), member);
+        if (null != addMethod) {
+            return generateAddToCollection(member, addMethod);
+        }
+        return generateBuilderSetter(member);
+    }
+
+    private PsiMethod generateAddToCollection(PsiFieldMember member, PsiMethod fieldAddMethod) {
+        var field = member.getElement();
+        //resolve the generic type of the collection via the parameter type of the add method
+        var param = Objects.requireNonNull(fieldAddMethod.getParameterList().getParameter(0));
+        var paramType = PsiUtil.resolveGenericsClassInType(field.getType())
+                .getSubstitutor()
+                .substitute(param.getType());
+
+        //now build the add method
+        var fieldName = "addTo" + StringUtil.capitalize(field.getName());
+        var psiElementFactory = generatorParams.psi().factory();
+        var addMethod = psiElementFactory.createMethod(fieldName, builderClassParams.builderType());
+        PsiUtil.setModifierProperty(addMethod, PsiModifier.PUBLIC, true);
+
+        var addParameter = psiElementFactory.createParameter(param.getName().toLowerCase(), paramType);
+        addMethod.getParameterList().add(addParameter);
+
+        var addMethodBody = Objects.requireNonNull(addMethod.getBody());
+        var addBody = psiElementFactory.createStatementFromText(String.format(
+                "this.%s.add(%s);", field.getName(), param.getName()), addMethod);
+        addMethodBody.add(addBody);
+        addMethodBody.add(Utils.createReturnThis(psiElementFactory, addMethod));
+        return addMethod;
+    }
+
+    private PsiMethod generateBuilderSetter(final PsiFieldMember member) {
 
         var field = member.getElement();
         var fieldType = field.getType();
@@ -59,12 +92,12 @@ class BuilderMethodsGenerator extends AbstractGenerator {
                 Character.toLowerCase(field.getName().charAt(1)) + field.getName().substring(2) : field.getName();
 
         var psiElementFactory = generatorParams.psi().factory();
-        var setterMethod = psiElementFactory.createMethod(fieldName, builderType);
-
+        var setterMethod = psiElementFactory.createMethod(fieldName, builderClassParams.builderType());
         setterMethod.getModifierList().setModifierProperty(PsiModifier.PUBLIC, true);
-        var setterParameter = psiElementFactory.createParameter(fieldName, fieldType);
 
+        var setterParameter = psiElementFactory.createParameter(fieldName, fieldType);
         setterMethod.getParameterList().add(setterParameter);
+
         var setterMethodBody = Objects.requireNonNull(setterMethod.getBody());
         var actualFieldName = "this." + fieldName;
         var assignStatement = psiElementFactory.createStatementFromText(String.format(

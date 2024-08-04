@@ -67,15 +67,6 @@ public class FieldCollector {
                 .filter(field -> !PsiTreeUtil.isAncestor(field, element, false))
                 .filter(field -> !field.hasModifierProperty(PsiModifier.STATIC))
                 .filter(field -> hasLowerCaseChar(field.getName()))
-                .filter(field -> {
-                    if (field.hasModifierProperty(PsiModifier.FINAL)) {
-                        if (field.hasInitializer()) {
-                            return false;
-                        }
-                        return accessObjectClass.isEquivalentTo(classToExtractFieldsFrom);
-                    }
-                    return true;
-                })
                 .filter(field -> Objects.nonNull(field.getContainingClass()))
                 .map(field -> buildFieldMember(field, field.getContainingClass(), classToExtractFieldsFrom))
                 .toList();
