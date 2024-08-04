@@ -11,7 +11,6 @@ import com.intellij.psi.PsiType;
 import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,15 +39,13 @@ class BuilderClassGenerator extends AbstractGenerator {
 
         //build setters
         var selectedFields = generatorParams.psi().selectedFields();
-        var fieldMembers = new ArrayList<PsiFieldMember>();
         PsiElement lastAddedField = null;
         for (var fieldMember : selectedFields) {
             lastAddedField = findOrCreateField(builderClass, fieldMember, lastAddedField);
-            fieldMembers.add(fieldMember);
         }
 
         PsiElement lastAddedElement = null;
-        for (var member : fieldMembers) {
+        for (var member : selectedFields) {
             var setterMethod = generateBuilderSetter(builderType, member);
             lastAddedElement = addMethod(builderClass, lastAddedElement, setterMethod, false);
         }
@@ -137,6 +134,7 @@ class BuilderClassGenerator extends AbstractGenerator {
 
     private PsiElement findOrCreateField(final PsiClass builderClass, final PsiFieldMember member,
                                          @Nullable final PsiElement last) {
+        var psiFactory = generatorParams.psi().factory();
         var field = member.getElement();
         var fieldName = field.getName();
         var fieldType = field.getType();
@@ -145,7 +143,7 @@ class BuilderClassGenerator extends AbstractGenerator {
             if (existingField != null) {
                 existingField.delete();
             }
-            var newField = generatorParams.psi().factory().createField(fieldName, fieldType);
+            var newField = psiFactory.createField(fieldName, fieldType);
             if (last != null) {
                 return builderClass.addAfter(newField, last);
             } else {
