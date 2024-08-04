@@ -48,7 +48,12 @@ class InnerBuilderGenerator extends AbstractGenerator {
             addMethod(targetClass, null, toBuilderMethod, true);
         }
 
-        new BuilderClassGenerator(generatorParams, targetClass, builderClass, builderType).run();
+        var params = BuilderClassParams.builder()
+                .targetClass(targetClass)
+                .builderClass(builderClass)
+                .builderType(builderType)
+                .build();
+        new BuilderClassGenerator(generatorParams, params).run();
 
         var project = generatorParams.project();
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(file);
