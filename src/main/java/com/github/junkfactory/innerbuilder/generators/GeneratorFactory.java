@@ -11,9 +11,10 @@ public interface GeneratorFactory {
     Runnable createBuilderClassGenerator(GeneratorParams generatorParams,
                                          BuilderClassParams builderClassParams);
 
-    Runnable createBuilderFieldsGenerator(GeneratorParams generatorParams,
-                                          BuilderClassParams builderClassParams);
+    FieldsGenerator createBuilderFieldsGenerator(GeneratorParams generatorParams,
+                                                 BuilderClassParams builderClassParams);
 
-    Runnable createBuilderMethodsGenerator(GeneratorParams generatorParams,
-                                           BuilderClassParams builderClassParams);
+    MethodsGenerator createBuilderMethodsGenerator(GeneratorParams generatorParams,
+                                                   BuilderClassParams builderClassParams,
+                                                   FieldsGenerator fieldsGenerator);
 }

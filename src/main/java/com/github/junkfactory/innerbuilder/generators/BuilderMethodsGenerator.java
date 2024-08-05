@@ -13,15 +13,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class BuilderMethodsGenerator extends AbstractGenerator {
+class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenerator {
 
     private final BuilderClassParams builderClassParams;
+    private final FieldsGenerator fieldsGenerator;
 
     BuilderMethodsGenerator(GeneratorFactory generatorFactory,
                             GeneratorParams generatorParams,
-                            BuilderClassParams builderClassParams) {
+                            BuilderClassParams builderClassParams,
+                            FieldsGenerator fieldsGenerator) {
         super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
+        this.fieldsGenerator = fieldsGenerator;
     }
 
     @Override
