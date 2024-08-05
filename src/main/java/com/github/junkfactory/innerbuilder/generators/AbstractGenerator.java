@@ -24,28 +24,34 @@ abstract class AbstractGenerator implements Runnable {
         this.generatorParams = generatorParams;
     }
 
+    protected PsiElement addElement(PsiElement target, PsiElement element, PsiElement after) {
+        if (after != null) {
+            return target.addAfter(element, after);
+        }
+        return target.add(element);
+    }
+
     protected PsiElement addMethod(@NotNull final PsiClass target, @Nullable final PsiElement after,
                                    @NotNull final PsiMethod newMethod, final boolean replace) {
         var existingMethod = target.findMethodBySignature(newMethod, false);
         if (existingMethod == null && newMethod.isConstructor()) {
-            for (final PsiMethod constructor : target.getConstructors()) {
-                if (Utils.areParameterListsEqual(constructor.getParameterList(),
-                        newMethod.getParameterList())) {
-                    existingMethod = constructor;
-                    break;
-                }
-            }
+            existingMethod = findConstructor(target, newMethod);
         }
         if (existingMethod == null) {
-            if (after != null) {
-                return target.addAfter(newMethod, after);
-            } else {
-                return target.add(newMethod);
-            }
+            return addElement(target, newMethod, after);
         } else if (replace) {
             existingMethod.replace(newMethod);
         }
         return existingMethod;
+    }
+
+    private PsiMethod findConstructor(PsiClass target, PsiMethod newMethod) {
+        for (var constructor : target.getConstructors()) {
+            if (Utils.areParameterListsEqual(constructor.getParameterList(), newMethod.getParameterList())) {
+                return constructor;
+            }
+        }
+        return null;
     }
 
 }

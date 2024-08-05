@@ -59,7 +59,7 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
             if (!builderClassParams.targetClass().isRecord()) {
                 field.setInitializer(null);
             }
-            existingField = (PsiField) addField(builderClass, newField, last);
+            existingField = (PsiField) addElement(builderClass, newField, last);
         }
         return existingField;
     }
@@ -72,13 +72,6 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
                 .map(m -> builderClass.findMethodBySignature(m, false))
                 .ifPresent(PsiElement::delete);
         field.delete();
-    }
-
-    private PsiElement addField(PsiClass builderClass, PsiField newField, PsiElement last) {
-        if (last != null) {
-            return builderClass.addAfter(newField, last);
-        }
-        return builderClass.add(newField);
     }
 
 }
