@@ -1,35 +1,41 @@
 package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
-import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiStatement;
 import com.intellij.psi.util.PsiUtil;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class BuilderMethodsGenerator extends AbstractGenerator {
+class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenerator {
 
     private final BuilderClassParams builderClassParams;
+    private final FieldsGenerator fieldsGenerator;
 
     BuilderMethodsGenerator(GeneratorFactory generatorFactory,
                             GeneratorParams generatorParams,
-                            BuilderClassParams builderClassParams) {
+                            BuilderClassParams builderClassParams,
+                            FieldsGenerator fieldsGenerator) {
         super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
+        this.fieldsGenerator = fieldsGenerator;
     }
 
     @Override
     public void run() {
         var builderClass = builderClassParams.builderClass();
         PsiElement lastAddedElement = null;
-        for (var member : generatorParams.psi().selectedFields()) {
-            var setterMethod = generateFieldMethod(member);
+        for (var field : fieldsGenerator.getFields()) {
+            var setterMethod = generateFieldMethod(field);
+            field.putCopyableUserData(UserDataKey.METHOD_REF, setterMethod);
             lastAddedElement = addMethod(builderClass, lastAddedElement, setterMethod, false);
         }
 
@@ -40,7 +46,7 @@ class BuilderMethodsGenerator extends AbstractGenerator {
         }
 
         var buildMethod = generateBuildMethod();
-        addMethod(builderClass, null, buildMethod, builderClassParams.builderClass().isRecord());
+        addMethod(builderClass, null, buildMethod, builderClassParams.targetClass().isRecord());
     }
 
     private PsiMethod generateValidateMethod() {
@@ -51,16 +57,28 @@ class BuilderMethodsGenerator extends AbstractGenerator {
         return validateMethod;
     }
 
-    private PsiMethod generateFieldMethod(PsiFieldMember member) {
-        var addMethod = Utils.findFieldAddMethod(builderClassParams.builderClass(), member);
+    private PsiMethod generateFieldMethod(PsiField field) {
+        var addMethod = field.hasInitializer() ? findAddMethod(field) : null;
         if (null != addMethod) {
-            return generateAddToCollection(member, addMethod);
+            return generateAddToCollection(field, addMethod);
         }
-        return generateBuilderSetter(member);
+        return generateBuilderSetter(field);
     }
 
-    private PsiMethod generateAddToCollection(PsiFieldMember member, PsiMethod fieldAddMethod) {
-        var field = member.getElement();
+    private PsiMethod findAddMethod(PsiField field) {
+        var fieldClass = PsiUtil.resolveClassInClassTypeOnly(field.getType());
+        var methods = Optional.ofNullable(fieldClass)
+                .map(PsiClass::getAllMethods)
+                .orElseGet(() -> new PsiMethod[0]);
+        for (var method : methods) {
+            if (method.getName().equals("add") && method.getParameterList().getParametersCount() == 1) {
+                return method;
+            }
+        }
+        return null;
+    }
+
+    private PsiMethod generateAddToCollection(PsiField field, PsiMethod fieldAddMethod) {
         //resolve the generic type of the collection via the parameter type of the add method
         var param = Objects.requireNonNull(fieldAddMethod.getParameterList().getParameter(0));
         var paramType = PsiUtil.resolveGenericsClassInType(field.getType())
@@ -84,9 +102,7 @@ class BuilderMethodsGenerator extends AbstractGenerator {
         return addMethod;
     }
 
-    private PsiMethod generateBuilderSetter(final PsiFieldMember member) {
-
-        var field = member.getElement();
+    private PsiMethod generateBuilderSetter(PsiField field) {
         var fieldType = field.getType();
         var fieldName = Utils.hasOneLetterPrefix(field.getName()) ?
                 Character.toLowerCase(field.getName().charAt(1)) + field.getName().substring(2) : field.getName();

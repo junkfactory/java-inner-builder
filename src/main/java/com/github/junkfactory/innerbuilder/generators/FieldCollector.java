@@ -5,7 +5,6 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiModifier;
@@ -45,7 +44,7 @@ public class FieldCollector {
 
         PsiClass classToExtractFieldsFrom = clazz;
         while (classToExtractFieldsFrom != null) {
-            var classFieldMembers = collectFieldsInClass(element, clazz, classToExtractFieldsFrom);
+            var classFieldMembers = collectFieldsInClass(clazz, classToExtractFieldsFrom);
             allFields.addAll(0, classFieldMembers);
             classToExtractFieldsFrom = classToExtractFieldsFrom.getSuperClass();
         }
@@ -53,9 +52,8 @@ public class FieldCollector {
         return allFields;
     }
 
-    private static List<PsiFieldMember> collectFieldsInClass(final PsiElement element,
-                                                             final PsiClass accessObjectClass,
-                                                             final PsiClass classToExtractFieldsFrom) {
+    private static List<PsiFieldMember> collectFieldsInClass(PsiClass accessObjectClass,
+                                                             PsiClass classToExtractFieldsFrom) {
         if (AbstractGenerator.BUILDER_CLASS_NAME.equals(classToExtractFieldsFrom.getName()) ||
                 OBJECT_CLASS_NAME.equals(classToExtractFieldsFrom.getName())) {
             return List.of();
@@ -64,7 +62,6 @@ public class FieldCollector {
         return Arrays.stream(classToExtractFieldsFrom.getFields())
                 .filter(field -> helper.isAccessible(field, classToExtractFieldsFrom, accessObjectClass) ||
                         hasSetter(classToExtractFieldsFrom, field.getName()))
-                .filter(field -> !PsiTreeUtil.isAncestor(field, element, false))
                 .filter(field -> !field.hasModifierProperty(PsiModifier.STATIC))
                 .filter(field -> hasLowerCaseChar(field.getName()))
                 .filter(field -> Objects.nonNull(field.getContainingClass()))

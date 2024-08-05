@@ -7,16 +7,12 @@ import com.intellij.psi.util.PsiUtil;
 class BuilderClassGenerator extends AbstractGenerator {
 
     private final BuilderClassParams builderClassParams;
-    private final Runnable fieldsGenerator;
-    private final Runnable methodsGenerator;
 
     BuilderClassGenerator(GeneratorFactory generatorFactory,
                           GeneratorParams generatorParams,
                           BuilderClassParams builderClassParams) {
         super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
-        this.fieldsGenerator = generatorFactory.createBuilderFieldsGenerator(generatorParams, builderClassParams);
-        this.methodsGenerator = generatorFactory.createBuilderMethodsGenerator(generatorParams, builderClassParams);
     }
 
     @Override
@@ -26,7 +22,11 @@ class BuilderClassGenerator extends AbstractGenerator {
         var builderConstructor = generateBuilderConstructor();
         addMethod(builderClass, null, builderConstructor, false);
 
+        var fieldsGenerator = generatorFactory.createBuilderFieldsGenerator(generatorParams, builderClassParams);
         fieldsGenerator.run();
+
+        var methodsGenerator = generatorFactory.createBuilderMethodsGenerator(generatorParams,
+                builderClassParams, fieldsGenerator);
         methodsGenerator.run();
     }
 

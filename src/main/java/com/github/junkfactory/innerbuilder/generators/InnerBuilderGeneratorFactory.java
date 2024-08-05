@@ -13,14 +13,15 @@ class InnerBuilderGeneratorFactory implements GeneratorFactory {
     }
 
     @Override
-    public Runnable createBuilderFieldsGenerator(GeneratorParams generatorParams,
-                                                 BuilderClassParams builderClassParams) {
+    public FieldsGenerator createBuilderFieldsGenerator(GeneratorParams generatorParams,
+                                                        BuilderClassParams builderClassParams) {
         return new BuilderFieldsGenerator(this, generatorParams, builderClassParams);
     }
 
     @Override
-    public Runnable createBuilderMethodsGenerator(GeneratorParams generatorParams,
-                                                  BuilderClassParams builderClassParams) {
-        return new BuilderMethodsGenerator(this, generatorParams, builderClassParams);
+    public MethodsGenerator createBuilderMethodsGenerator(GeneratorParams generatorParams,
+                                                          BuilderClassParams builderClassParams,
+                                                          FieldsGenerator fieldsGenerator) {
+        return new BuilderMethodsGenerator(this, generatorParams, builderClassParams, fieldsGenerator);
     }
 }
