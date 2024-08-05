@@ -8,11 +8,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerator {
 
     private final BuilderClassParams builderClassParams;
-    private final List<PsiFieldMember> refactoredFields = new LinkedList<>();
+    private final List<PsiField> fields = new LinkedList<>();
 
     BuilderFieldsGenerator(GeneratorFactory generatorFactory,
                            GeneratorParams generatorParams,
@@ -22,19 +23,29 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
     }
 
     @Override
-    public List<PsiFieldMember> getRefactoredFields() {
-        return refactoredFields;
+    public List<PsiField> getFields() {
+        return fields;
     }
 
     @Override
     public void run() {
-        PsiElement lastAddedField = null;
+        PsiField lastAddedField = null;
         for (var fieldMember : generatorParams.psi().selectedFields()) {
-            lastAddedField = findOrCreateField(builderClassParams.builderClass(), fieldMember, lastAddedField);
+            lastAddedField = createOrUpdateField(builderClassParams.builderClass(), fieldMember, lastAddedField);
+            fields.add(lastAddedField);
+        }
+        cleanupFields(builderClassParams.builderClass());
+    }
+
+    private void cleanupFields(PsiClass builderClass) {
+        for (var field : builderClass.getFields()) {
+            if (!fields.contains(field)) {
+                deleteFieldAndMethodIfExists(builderClass, field);
+            }
         }
     }
 
-    private PsiElement findOrCreateField(final PsiClass builderClass, final PsiFieldMember member,
+    private PsiField createOrUpdateField(final PsiClass builderClass, final PsiFieldMember member,
                                          @Nullable final PsiElement last) {
         var psiFactory = generatorParams.psi().factory();
         var field = member.getElement();
@@ -42,26 +53,32 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
         var fieldType = field.getType();
         var existingField = builderClass.findFieldByName(fieldName, false);
         if (existingField == null || Utils.areTypesPresentableNotEqual(existingField.getType(), fieldType)) {
-            if (null != existingField) {
-                refactoredFields.add(member);
-                existingField.delete();
-            }
+            deleteFieldAndMethodIfExists(builderClass, existingField);
             var newField = psiFactory.createField(fieldName, fieldType);
             newField.setInitializer(field.getInitializer());
             if (!builderClassParams.targetClass().isRecord()) {
                 field.setInitializer(null);
             }
-            return addField(builderClass, newField, last);
+            existingField = (PsiField) addField(builderClass, newField, last);
         }
         return existingField;
+    }
+
+    private void deleteFieldAndMethodIfExists(PsiClass builderClass, PsiField field) {
+        if (null == field) {
+            return;
+        }
+        Optional.ofNullable(field.getCopyableUserData(UserDataKey.METHOD_REF))
+                .map(m -> builderClass.findMethodBySignature(m, false))
+                .ifPresent(PsiElement::delete);
+        field.delete();
     }
 
     private PsiElement addField(PsiClass builderClass, PsiField newField, PsiElement last) {
         if (last != null) {
             return builderClass.addAfter(newField, last);
-        } else {
-            return builderClass.add(newField);
         }
+        return builderClass.add(newField);
     }
 
 }
