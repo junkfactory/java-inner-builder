@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.openapi.editor.Editor;
@@ -6,10 +6,10 @@ import com.intellij.openapi.project.Project;
 
 import java.util.Set;
 
-record GeneratorParams(Project project,
-                       Editor editor,
-                       PsiParams psi,
-                       Set<JavaInnerBuilderOption> options) {
+public record GeneratorParams(Project project,
+                              Editor editor,
+                              PsiParams psi,
+                              Set<JavaInnerBuilderOption> options) {
 
     public static Builder builder() {
         return new Builder();
@@ -44,7 +44,7 @@ record GeneratorParams(Project project,
             return this;
         }
 
-        GeneratorParams build() {
+        public GeneratorParams build() {
             return new GeneratorParams(project, editor, psi, options);
         }
     }

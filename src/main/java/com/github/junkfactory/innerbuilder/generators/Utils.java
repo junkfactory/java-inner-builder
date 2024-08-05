@@ -1,10 +1,12 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
+import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiParameterList;
 import com.intellij.psi.PsiStatement;
@@ -15,7 +17,10 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class Utils {
+import java.util.Objects;
+import java.util.Optional;
+
+public class Utils {
     @NonNls
     static final String JAVA_DOT_LANG = "java.lang.";
 
@@ -67,7 +72,7 @@ class Utils {
      * @return psiClass if class is static or top level. Otherwise returns {@code null}
      */
     @Nullable
-    static PsiClass getStaticOrTopLevelClass(PsiFile file, Editor editor) {
+    public static PsiClass getStaticOrTopLevelClass(PsiFile file, Editor editor) {
         var offset = editor.getCaretModel().getOffset();
         var element = file.findElementAt(offset);
         if (element == null) {
@@ -86,5 +91,22 @@ class Utils {
 
     static PsiStatement createReturnThis(@NotNull PsiElementFactory psiElementFactory, @Nullable PsiElement context) {
         return psiElementFactory.createStatementFromText("return this;", context);
+    }
+
+    static PsiMethod findFieldAddMethod(PsiClass builderClass, PsiFieldMember member) {
+        var field = builderClass.findFieldByName(member.getElement().getName(), false);
+        if (!Objects.requireNonNull(field).hasInitializer()) {
+            return null;
+        }
+        var fieldClass = PsiUtil.resolveClassInClassTypeOnly(field.getType());
+        var methods = Optional.ofNullable(fieldClass)
+                .map(PsiClass::getAllMethods)
+                .orElseGet(() -> new PsiMethod[0]);
+        for (var method : methods) {
+            if (method.getName().equals("add") && method.getParameterList().getParametersCount() == 1) {
+                return method;
+            }
+        }
+        return null;
     }
 }

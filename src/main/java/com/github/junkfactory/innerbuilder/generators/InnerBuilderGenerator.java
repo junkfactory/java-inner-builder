@@ -1,4 +1,4 @@
-package com.github.junkfactory.innerbuilder;
+package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
@@ -18,8 +18,8 @@ import java.util.Objects;
 
 class InnerBuilderGenerator extends AbstractGenerator {
 
-    InnerBuilderGenerator(GeneratorParams generatorParams) {
-        super(generatorParams);
+    InnerBuilderGenerator(GeneratorFactory generatorFactory, GeneratorParams generatorParams) {
+        super(generatorFactory, generatorParams);
     }
 
     @Override
@@ -48,7 +48,12 @@ class InnerBuilderGenerator extends AbstractGenerator {
             addMethod(targetClass, null, toBuilderMethod, true);
         }
 
-        new BuilderClassGenerator(generatorParams, targetClass, builderClass, builderType).run();
+        var params = BuilderClassParams.builder()
+                .targetClass(targetClass)
+                .builderClass(builderClass)
+                .builderType(builderType)
+                .build();
+        generatorFactory.createBuilderClassGenerator(generatorParams, params).run();
 
         var project = generatorParams.project();
         JavaCodeStyleManager.getInstance(project).shortenClassReferences(file);
