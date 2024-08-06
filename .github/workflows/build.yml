@@ -16,7 +16,7 @@ name: Build
 on:
   # Trigger the workflow on pushes to only the 'main' branch (this avoids duplicate checks being run e.g., for dependabot pull requests)
   push:
-    branches: [ main ]
+    branches: [main]
   # Trigger the workflow on any pull request
   pull_request:
 
@@ -25,7 +25,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   # Prepare environment and build the plugin
   build:
     name: Build
@@ -35,6 +34,12 @@ jobs:
       changelog: ${{ steps.properties.outputs.changelog }}
       pluginVerifierHomeDir: ${{ steps.properties.outputs.pluginVerifierHomeDir }}
     steps:
+      # Free GitHub Actions Environment Disk Space
+      - name: Maximize Build Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
 
       # Check out the current repository
       - name: Fetch Sources
@@ -82,10 +87,9 @@ jobs:
   # Run tests and upload a code coverage report
   test:
     name: Test
-    needs: [ build ]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
-
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
@@ -118,10 +122,9 @@ jobs:
   # Run plugin structure verification along with IntelliJ Plugin Verifier
   verify:
     name: Verify plugin
-    needs: [ build ]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
-
       # Free GitHub Actions Environment Disk Space
       - name: Maximize Build Space
         uses: jlumbroso/free-disk-space@main
