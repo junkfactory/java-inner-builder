@@ -35,7 +35,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         PsiElement lastAddedElement = null;
         for (var field : fieldsGenerator.getFields()) {
             var setterMethod = generateFieldMethod(field);
-            field.putCopyableUserData(UserDataKey.METHOD_REF, setterMethod);
+            field.putCopyableUserData(UserDataKey.METHOD_REF, setterMethod.getName());
             lastAddedElement = addMethod(builderClass, lastAddedElement, setterMethod, false);
         }
 

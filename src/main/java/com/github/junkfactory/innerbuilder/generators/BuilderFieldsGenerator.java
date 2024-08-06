@@ -6,9 +6,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerator {
 
@@ -69,8 +71,9 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
             return;
         }
         Optional.ofNullable(field.getCopyableUserData(UserDataKey.METHOD_REF))
-                .map(m -> builderClass.findMethodBySignature(m, false))
-                .ifPresent(PsiElement::delete);
+                .map(m -> Arrays.stream(builderClass.findMethodsByName(m, false)))
+                .orElseGet(Stream::empty)
+                .forEach(PsiElement::delete);
         field.delete();
     }
 

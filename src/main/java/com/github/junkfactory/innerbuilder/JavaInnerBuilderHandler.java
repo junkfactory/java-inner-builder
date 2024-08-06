@@ -88,10 +88,9 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
                     .build();
             var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
             ApplicationManager.getApplication().runWriteAction(builderGenerator);
+            //commit and apply formatting
+            PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.getDocument());
         });
-
-        //commit and apply formatting
-        PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.getDocument());
 
     }
 
