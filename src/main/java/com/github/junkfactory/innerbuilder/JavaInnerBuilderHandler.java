@@ -13,9 +13,9 @@ import com.intellij.openapi.editor.EditorModificationUtil;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+import com.intellij.util.AstLoadingFilter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumSet;
@@ -54,13 +54,6 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
 
     @Override
     public void invoke(@NotNull final Project project, @NotNull final Editor editor, @NotNull final PsiFile file) {
-        var psiDocumentManager = PsiDocumentManager.getInstance(project);
-        var currentDocument = psiDocumentManager.getDocument(file);
-        if (currentDocument == null) {
-            return;
-        }
-
-        psiDocumentManager.commitDocument(currentDocument);
 
         if (!EditorModificationUtil.checkModificationAllowed(editor)) {
             return;
@@ -70,29 +63,32 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
             return;
         }
 
-        var existingFields = collectFields(file, editor);
-        if (existingFields.isEmpty()) {
-            return;
-        }
+        AstLoadingFilter.disallowTreeLoading(() -> {
+            var existingFields = collectFields(file, editor);
+            if (existingFields.isEmpty()) {
+                return;
+            }
 
-        var selectedFields = selectFieldsAndOptions(existingFields, project);
-        if (selectedFields.isEmpty()) {
-            return;
-        }
+            var selectedFields = selectFieldsAndOptions(existingFields, project);
+            if (selectedFields.isEmpty()) {
+                return;
+            }
 
-        var psiParams = PsiParams.builder()
-                .file(file)
-                .selectedFields(selectedFields)
-                .factory(JavaPsiFacade.getElementFactory(project))
-                .build();
-        var generatorParams = GeneratorParams.builder()
-                .project(project)
-                .editor(editor)
-                .psi(psiParams)
-                .options(currentOptions())
-                .build();
-        var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
-        ApplicationManager.getApplication().runWriteAction(builderGenerator);
+            var psiParams = PsiParams.builder()
+                    .file(file)
+                    .selectedFields(selectedFields)
+                    .factory(JavaPsiFacade.getElementFactory(project))
+                    .build();
+            var generatorParams = GeneratorParams.builder()
+                    .project(project)
+                    .editor(editor)
+                    .psi(psiParams)
+                    .options(currentOptions())
+                    .build();
+            var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
+            ApplicationManager.getApplication().runWriteAction(builderGenerator);
+        });
+
     }
 
     private Set<JavaInnerBuilderOption> currentOptions() {
