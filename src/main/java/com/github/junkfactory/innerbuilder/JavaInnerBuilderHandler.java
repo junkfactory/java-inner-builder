@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.EditorModificationUtil;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.util.AstLoadingFilter;
@@ -88,6 +89,9 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
             var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
             ApplicationManager.getApplication().runWriteAction(builderGenerator);
         });
+
+        //commit and apply formatting
+        PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.getDocument());
 
     }
 
