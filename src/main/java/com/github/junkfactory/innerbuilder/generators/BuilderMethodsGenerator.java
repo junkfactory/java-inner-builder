@@ -64,6 +64,9 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
     }
 
     private PsiMethod findAddMethod(PsiField field) {
+        if (isFieldInitializedWithImmutableCollection(field)) {
+            return null;
+        }
         var fieldClass = PsiUtil.resolveClassInClassTypeOnly(field.getType());
         var methods = Optional.ofNullable(fieldClass)
                 .map(PsiClass::getAllMethods)
@@ -74,6 +77,19 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
             }
         }
         return null;
+    }
+
+    private boolean isFieldInitializedWithImmutableCollection(PsiField field) {
+        var initializer = field.getInitializer();
+        if (null == initializer) {
+            return false;
+        }
+        var initializerType = initializer.getType();
+        if (null == initializerType) {
+            return false;
+        }
+        var initializerClass = PsiUtil.resolveClassInClassTypeOnly(initializerType);
+        return null != initializerClass && initializerClass.hasModifierProperty(PsiModifier.ABSTRACT);
     }
 
     private PsiMethod generateAddToCollection(PsiField field, PsiMethod fieldAddMethod) {
