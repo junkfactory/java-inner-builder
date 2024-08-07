@@ -2,7 +2,6 @@ package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
@@ -10,7 +9,6 @@ import com.intellij.psi.PsiModifier;
 import com.intellij.psi.util.PsiUtil;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenerator {
@@ -56,48 +54,42 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
     }
 
     private PsiMethod generateFieldMethod(PsiField field) {
-        var addMethod = field.hasInitializer() ? findAddMethod(field) : null;
+        var addMethod = field.hasInitializer() ? Utils.findAddMethod(field) : null;
         if (null != addMethod) {
             return generateAddToCollection(field, addMethod);
         }
+
+        var putMethod = field.hasInitializer() ? Utils.findPutMethod(field) : null;
+        if (null != putMethod) {
+            return generatePutToMap(field, putMethod);
+        }
+
         return generateBuilderSetter(field);
     }
 
-    private PsiMethod findAddMethod(PsiField field) {
-        if (isFieldInitializedWithImmutableCollection(field)) {
-            return null;
-        }
-        var fieldClass = PsiUtil.resolveClassInClassTypeOnly(field.getType());
-        var methods = Optional.ofNullable(fieldClass)
-                .map(PsiClass::getAllMethods)
-                .orElseGet(() -> new PsiMethod[0]);
-        for (var method : methods) {
-            if (method.getName().equals("add") && method.getParameterList().getParametersCount() == 1) {
-                return method;
-            }
-        }
-        return null;
-    }
+    private PsiMethod generatePutToMap(PsiField field, PsiMethod fieldPutMethod) {
+        //resolve the generic type of the map via the parameter type of the put method
+        var param1 = Objects.requireNonNull(fieldPutMethod.getParameterList().getParameter(0));
+        var param1Type = Utils.resolveGenericParameterType(field.getType(), param1);
+        var param2 = Objects.requireNonNull(fieldPutMethod.getParameterList().getParameter(1));
+        var param2Type = Utils.resolveGenericParameterType(field.getType(), param2);
 
-    private boolean isFieldInitializedWithImmutableCollection(PsiField field) {
-        var initializer = field.getInitializer();
-        if (null == initializer) {
-            return false;
-        }
-        var initializerType = initializer.getType();
-        if (null == initializerType) {
-            return false;
-        }
-        var initializerClass = PsiUtil.resolveClassInClassTypeOnly(initializerType);
-        return null != initializerClass && initializerClass.hasModifierProperty(PsiModifier.ABSTRACT);
+        //now build the put method
+        var methodName = "putTo" + StringUtil.capitalize(field.getName());
+        var methodText = """
+                public %s %s(%s key, %s value) {
+                    this.%s.put(key, value);
+                    return this;
+                }""".formatted(BUILDER_CLASS_NAME, methodName, param1Type.getPresentableText(),
+                param2Type.getPresentableText(), field.getName());
+        var psiElementFactory = generatorParams.psi().factory();
+        return psiElementFactory.createMethodFromText(methodText, field);
     }
 
     private PsiMethod generateAddToCollection(PsiField field, PsiMethod fieldAddMethod) {
         //resolve the generic type of the collection via the parameter type of the add method
         var param = Objects.requireNonNull(fieldAddMethod.getParameterList().getParameter(0));
-        var paramType = PsiUtil.resolveGenericsClassInType(field.getType())
-                .getSubstitutor()
-                .substitute(param.getType());
+        var paramType = Utils.resolveGenericParameterType(field.getType(), param);
 
         //now build the add method
         var methodName = "addTo" + StringUtil.capitalize(field.getName());
