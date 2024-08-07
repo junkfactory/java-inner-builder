@@ -7,13 +7,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
-import com.intellij.psi.PsiStatement;
 import com.intellij.psi.util.PsiUtil;
 
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenerator {
 
@@ -86,20 +84,15 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
                 .substitute(param.getType());
 
         //now build the add method
-        var fieldName = "addTo" + StringUtil.capitalize(field.getName());
+        var methodName = "addTo" + StringUtil.capitalize(field.getName());
+        var methodText = """
+                public %s %s(%s %s) {
+                    this.%s.add(%s);
+                    return this;
+                }""".formatted(BUILDER_CLASS_NAME, methodName, paramType.getPresentableText(),
+                param.getName().toLowerCase(), field.getName(), param.getName());
         var psiElementFactory = generatorParams.psi().factory();
-        var addMethod = psiElementFactory.createMethod(fieldName, builderClassParams.builderType());
-        PsiUtil.setModifierProperty(addMethod, PsiModifier.PUBLIC, true);
-
-        var addParameter = psiElementFactory.createParameter(param.getName().toLowerCase(), paramType);
-        addMethod.getParameterList().add(addParameter);
-
-        var addMethodBody = Objects.requireNonNull(addMethod.getBody());
-        var addBody = psiElementFactory.createStatementFromText(String.format(
-                "this.%s.add(%s);", field.getName(), param.getName()), addMethod);
-        addMethodBody.add(addBody);
-        addMethodBody.add(Utils.createReturnThis(psiElementFactory, addMethod));
-        return addMethod;
+        return psiElementFactory.createMethodFromText(methodText, field);
     }
 
     private PsiMethod generateBuilderSetter(PsiField field) {
@@ -107,53 +100,45 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         var fieldName = Utils.hasOneLetterPrefix(field.getName()) ?
                 Character.toLowerCase(field.getName().charAt(1)) + field.getName().substring(2) : field.getName();
 
+        var methodText = """
+                public %s %s(%s %s) {
+                    this.%s = %s;
+                    return this;
+                }""".formatted(BUILDER_CLASS_NAME, fieldName, fieldType.getPresentableText(),
+                fieldName, field.getName(), fieldName);
         var psiElementFactory = generatorParams.psi().factory();
-        var setterMethod = psiElementFactory.createMethod(fieldName, builderClassParams.builderType());
-        setterMethod.getModifierList().setModifierProperty(PsiModifier.PUBLIC, true);
-
-        var setterParameter = psiElementFactory.createParameter(fieldName, fieldType);
-        setterMethod.getParameterList().add(setterParameter);
-
-        var setterMethodBody = Objects.requireNonNull(setterMethod.getBody());
-        var actualFieldName = "this." + fieldName;
-        var assignStatement = psiElementFactory.createStatementFromText(String.format(
-                "%s = %s;", actualFieldName, fieldName), setterMethod);
-        setterMethodBody.add(assignStatement);
-        setterMethodBody.add(Utils.createReturnThis(psiElementFactory, setterMethod));
-        return setterMethod;
+        return psiElementFactory.createMethodFromText(methodText, field);
     }
 
     private PsiMethod generateBuildMethod() {
         var targetClass = builderClassParams.targetClass();
-        var psiElementFactory = generatorParams.psi().factory();
-        var targetClassType = psiElementFactory.createType(targetClass);
-        var buildMethod = psiElementFactory.createMethod("build", targetClassType);
-
         var targetModifierList = Objects.requireNonNull(targetClass.getModifierList());
-        Stream.of(PsiModifier.PUBLIC, PsiModifier.PACKAGE_LOCAL)
-                .filter(targetModifierList::hasModifierProperty)
-                .findFirst()
-                .ifPresent(modifier -> PsiUtil.setModifierProperty(buildMethod, modifier, true));
+        boolean isPublic = targetModifierList.hasModifierProperty(PsiModifier.PUBLIC);
 
-        var buildMethodBody = Objects.requireNonNull(buildMethod.getBody());
+        var buildMethod = new StringBuilder()
+                .append(isPublic ? PsiModifier.PUBLIC : EMPTY)
+                .append(isPublic ? SPACE : EMPTY)
+                .append(targetClass.getName())
+                .append(" build() {");
         if (generatorParams.options().contains(JavaInnerBuilderOption.WITH_VALIDATE_METHOD)) {
-            var validateCall = psiElementFactory.createStatementFromText("validate();", buildMethod);
-            buildMethodBody.add(validateCall);
+            buildMethod.append("validate();");
         }
-
-        final PsiStatement returnStatement;
         if (targetClass.isRecord()) {
-            var recordParameters = generatorParams.psi().selectedFields().stream()
-                    .map(m -> m.getElement().getName())
+            var recordParameters = fieldsGenerator.getFields().stream()
+                    .map(PsiField::getName)
                     .collect(Collectors.joining(", "));
-            returnStatement = psiElementFactory.createStatementFromText(String.format(
-                    "return new %s(%s);", targetClass.getName(), recordParameters), buildMethod);
+            buildMethod.append("return new ")
+                    .append(targetClass.getName())
+                    .append("(")
+                    .append(recordParameters)
+                    .append(");");
         } else {
-            returnStatement = psiElementFactory.createStatementFromText(String.format(
-                    "return new %s(this);", targetClass.getName()), buildMethod);
+            buildMethod.append("return new ")
+                    .append(targetClass.getName())
+                    .append("(this);");
         }
+        buildMethod.append("}");
 
-        buildMethodBody.add(returnStatement);
-        return buildMethod;
+        return generatorParams.psi().factory().createMethodFromText(buildMethod.toString(), targetClass);
     }
 }
