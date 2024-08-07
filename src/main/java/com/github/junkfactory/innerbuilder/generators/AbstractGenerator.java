@@ -15,6 +15,10 @@ abstract class AbstractGenerator implements Runnable {
     static final String BUILDER_METHOD_NAME = "builder";
     @NonNls
     static final String TO_BUILDER_NAME = "toBuilder";
+    @NonNls
+    static final String EMPTY = "";
+    @NonNls
+    static final String SPACE = " ";
 
     protected final GeneratorFactory generatorFactory;
     protected final GeneratorParams generatorParams;

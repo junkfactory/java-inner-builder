@@ -1,5 +1,6 @@
 package com.github.junkfactory.innerbuilder;
 
+import com.github.junkfactory.innerbuilder.generators.FieldCollector;
 import com.github.junkfactory.innerbuilder.generators.GeneratorFactory;
 import com.github.junkfactory.innerbuilder.generators.GeneratorParams;
 import com.github.junkfactory.innerbuilder.generators.PsiParams;
@@ -13,15 +14,14 @@ import com.intellij.openapi.editor.EditorModificationUtil;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+import com.intellij.util.AstLoadingFilter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumSet;
 import java.util.Set;
 
-import static com.github.junkfactory.innerbuilder.generators.FieldCollector.collectFields;
 import static com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOptionSelector.selectFieldsAndOptions;
 
 class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
@@ -48,19 +48,15 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
     }
 
     private static boolean isApplicable(final PsiFile file, final Editor editor) {
-        var targetElements = collectFields(file, editor);
-        return !targetElements.isEmpty();
+        return FieldCollector.builder()
+                .file(file)
+                .editor(editor)
+                .build()
+                .hasFields();
     }
 
     @Override
     public void invoke(@NotNull final Project project, @NotNull final Editor editor, @NotNull final PsiFile file) {
-        var psiDocumentManager = PsiDocumentManager.getInstance(project);
-        var currentDocument = psiDocumentManager.getDocument(file);
-        if (currentDocument == null) {
-            return;
-        }
-
-        psiDocumentManager.commitDocument(currentDocument);
 
         if (!EditorModificationUtil.checkModificationAllowed(editor)) {
             return;
@@ -70,29 +66,37 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
             return;
         }
 
-        var existingFields = collectFields(file, editor);
-        if (existingFields.isEmpty()) {
-            return;
-        }
-
-        var selectedFields = selectFieldsAndOptions(existingFields, project);
-        if (selectedFields.isEmpty()) {
-            return;
-        }
-
-        var psiParams = PsiParams.builder()
+        var fieldCollector = FieldCollector.builder()
                 .file(file)
-                .selectedFields(selectedFields)
-                .factory(JavaPsiFacade.getElementFactory(project))
-                .build();
-        var generatorParams = GeneratorParams.builder()
-                .project(project)
                 .editor(editor)
-                .psi(psiParams)
-                .options(currentOptions())
                 .build();
-        var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
-        ApplicationManager.getApplication().runWriteAction(builderGenerator);
+
+        AstLoadingFilter.disallowTreeLoading(() -> {
+            var existingFields = fieldCollector.collectFields();
+            if (existingFields.isEmpty()) {
+                return;
+            }
+
+            var selectedFields = selectFieldsAndOptions(existingFields, project);
+            if (selectedFields.isEmpty()) {
+                return;
+            }
+
+            var psiParams = PsiParams.builder()
+                    .file(file)
+                    .selectedFields(selectedFields)
+                    .factory(JavaPsiFacade.getElementFactory(project))
+                    .build();
+            var generatorParams = GeneratorParams.builder()
+                    .project(project)
+                    .editor(editor)
+                    .psi(psiParams)
+                    .options(currentOptions())
+                    .build();
+            var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
+            ApplicationManager.getApplication().runWriteAction(builderGenerator);
+        });
+
     }
 
     private Set<JavaInnerBuilderOption> currentOptions() {

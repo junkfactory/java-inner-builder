@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerator {
 
@@ -68,9 +67,13 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
         if (null == field) {
             return;
         }
-        Optional.ofNullable(field.getCopyableUserData(UserDataKey.METHOD_REF))
-                .map(m -> builderClass.findMethodBySignature(m, false))
-                .ifPresent(PsiElement::delete);
+        var methodName = field.getCopyableUserData(UserDataKey.METHOD_REF);
+        if (null != methodName) {
+            var builderClassMethods = builderClass.findMethodsByName(methodName, false);
+            for (var method : builderClassMethods) {
+                method.delete();
+            }
+        }
         field.delete();
     }
 
