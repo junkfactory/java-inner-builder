@@ -1,5 +1,6 @@
 package com.github.junkfactory.innerbuilder;
 
+import com.github.junkfactory.innerbuilder.generators.FieldCollector;
 import com.github.junkfactory.innerbuilder.generators.GeneratorFactory;
 import com.github.junkfactory.innerbuilder.generators.GeneratorParams;
 import com.github.junkfactory.innerbuilder.generators.PsiParams;
@@ -13,7 +14,6 @@ import com.intellij.openapi.editor.EditorModificationUtil;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.util.AstLoadingFilter;
@@ -22,7 +22,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.EnumSet;
 import java.util.Set;
 
-import static com.github.junkfactory.innerbuilder.generators.FieldCollector.collectFields;
 import static com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOptionSelector.selectFieldsAndOptions;
 
 class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
@@ -49,8 +48,11 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
     }
 
     private static boolean isApplicable(final PsiFile file, final Editor editor) {
-        var targetElements = collectFields(file, editor);
-        return !targetElements.isEmpty();
+        return FieldCollector.builder()
+                .file(file)
+                .editor(editor)
+                .build()
+                .hasFields();
     }
 
     @Override
@@ -64,8 +66,13 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
             return;
         }
 
+        var fieldCollector = FieldCollector.builder()
+                .file(file)
+                .editor(editor)
+                .build();
+
         AstLoadingFilter.disallowTreeLoading(() -> {
-            var existingFields = collectFields(file, editor);
+            var existingFields = fieldCollector.collectFields();
             if (existingFields.isEmpty()) {
                 return;
             }
@@ -88,8 +95,6 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
                     .build();
             var builderGenerator = generatorFactory.createInnerBuilderGenerator(generatorParams);
             ApplicationManager.getApplication().runWriteAction(builderGenerator);
-            //commit and apply formatting
-            PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.getDocument());
         });
 
     }
