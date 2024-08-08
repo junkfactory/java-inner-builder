@@ -6,6 +6,7 @@ import com.github.junkfactory.innerbuilder.generators.GeneratorParams;
 import com.github.junkfactory.innerbuilder.generators.PsiParams;
 import com.github.junkfactory.innerbuilder.generators.Utils;
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
+import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOptionSelector;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.lang.LanguageCodeInsightActionHandler;
 import com.intellij.openapi.application.ApplicationManager;
@@ -21,8 +22,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumSet;
 import java.util.Set;
-
-import static com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOptionSelector.selectFieldsAndOptions;
 
 class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
 
@@ -77,7 +76,11 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
                 return;
             }
 
-            var selectedFields = selectFieldsAndOptions(existingFields, project);
+            var optionsDialog = JavaInnerBuilderOptionSelector.builder()
+                    .project(project)
+                    .members(existingFields)
+                    .build();
+            var selectedFields = optionsDialog.selectFieldsAndOptions();
             if (selectedFields.isEmpty()) {
                 return;
             }

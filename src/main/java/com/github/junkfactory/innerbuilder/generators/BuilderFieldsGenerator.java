@@ -4,6 +4,8 @@ import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiModifier;
+import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
@@ -54,7 +56,10 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
         if (existingField == null || Utils.areTypesPresentableNotEqual(existingField.getType(), fieldType)) {
             deleteFieldAndMethodIfExists(builderClass, existingField);
             var newField = psiFactory.createField(fieldName, fieldType);
-            newField.setInitializer(field.getInitializer());
+            if (field.hasInitializer()) {
+                PsiUtil.setModifierProperty(newField, PsiModifier.FINAL, true);
+                newField.setInitializer(field.getInitializer());
+            }
             if (!builderClassParams.targetClass().isRecord()) {
                 field.setInitializer(null);
             }

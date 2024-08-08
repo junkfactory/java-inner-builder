@@ -19,6 +19,10 @@ abstract class AbstractGenerator implements Runnable {
     static final String EMPTY = "";
     @NonNls
     static final String SPACE = " ";
+    @NonNls
+    static final String THIS_DOT = "this.";
+    @NonNls
+    static final String RETURN_THIS = "return this;";
 
     protected final GeneratorFactory generatorFactory;
     protected final GeneratorParams generatorParams;
