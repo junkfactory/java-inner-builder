@@ -6,6 +6,7 @@ import com.github.junkfactory.innerbuilder.generators.GeneratorParams;
 import com.github.junkfactory.innerbuilder.generators.PsiParams;
 import com.github.junkfactory.innerbuilder.generators.Utils;
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
+import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOptionSelector;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.lang.LanguageCodeInsightActionHandler;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,13 +17,12 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.util.AstLoadingFilter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumSet;
 import java.util.Set;
-
-import static com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOptionSelector.selectFieldsAndOptions;
 
 class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
 
@@ -48,7 +48,7 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
     }
 
     private static boolean isApplicable(final PsiFile file, final Editor editor) {
-        return FieldCollector.builder()
+        return file instanceof PsiJavaFile && FieldCollector.builder()
                 .file(file)
                 .editor(editor)
                 .build()
@@ -77,7 +77,11 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
                 return;
             }
 
-            var selectedFields = selectFieldsAndOptions(existingFields, project);
+            var optionsDialog = JavaInnerBuilderOptionSelector.builder()
+                    .project(project)
+                    .members(existingFields)
+                    .build();
+            var selectedFields = optionsDialog.selectFieldsAndOptions();
             if (selectedFields.isEmpty()) {
                 return;
             }
@@ -86,6 +90,7 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
                     .file(file)
                     .selectedFields(selectedFields)
                     .factory(JavaPsiFacade.getElementFactory(project))
+                    .codeStyleManager(JavaCodeStyleManager.getInstance(project))
                     .build();
             var generatorParams = GeneratorParams.builder()
                     .project(project)

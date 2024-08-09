@@ -4,11 +4,11 @@ import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.codeStyle.CodeStyleManager;
-import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.util.PropertyUtilBase;
 import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.NotNull;
@@ -16,18 +16,22 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.Objects;
 
-class InnerBuilderGenerator extends AbstractGenerator {
+import static com.github.junkfactory.innerbuilder.generators.GenerationResult.Code.ANNOTATIONS_ADDED;
+import static com.github.junkfactory.innerbuilder.generators.GenerationResult.Code.IMPORTS_ADDED;
+import static com.github.junkfactory.innerbuilder.generators.GenerationResult.NO_RESULT;
+
+class InnerBuilderGenerator extends AbstractGenerator implements Generator {
 
     InnerBuilderGenerator(GeneratorFactory generatorFactory, GeneratorParams generatorParams) {
         super(generatorFactory, generatorParams);
     }
 
     @Override
-    public void run() {
+    public GenerationResult generate() {
         var file = generatorParams.psi().file();
         var targetClass = Utils.getStaticOrTopLevelClass(file, generatorParams.editor());
         if (targetClass == null || BUILDER_CLASS_NAME.equals(targetClass.getName())) {
-            return;
+            return NO_RESULT;
         }
         var psiElementFactory = generatorParams.psi().factory();
         var builderClass = findOrCreateBuilderClass(targetClass);
@@ -54,11 +58,13 @@ class InnerBuilderGenerator extends AbstractGenerator {
                 .builderClass(builderClass)
                 .builderType(builderType)
                 .build();
-        generatorFactory.createBuilderClassGenerator(generatorParams, params).run();
+        var result = generatorFactory.createBuilderClassGenerator(generatorParams, params).generate();
 
-        var project = generatorParams.project();
-        JavaCodeStyleManager.getInstance(project).shortenClassReferences(file);
-        CodeStyleManager.getInstance(project).reformat(builderClass);
+        var codeStyleManager = generatorParams.psi().codeStyleManager();
+        result.when(ANNOTATIONS_ADDED, () -> codeStyleManager.shortenClassReferences(file));
+        result.when(IMPORTS_ADDED, () -> codeStyleManager.removeRedundantImports((PsiJavaFile) file));
+        CodeStyleManager.getInstance(generatorParams.project()).reformat(builderClass);
+        return result;
     }
 
     private PsiMethod generateToBuilderMethod(PsiClass targetClass,

@@ -1,4 +1,4 @@
 package com.github.junkfactory.innerbuilder.generators;
 
-public interface MethodsGenerator extends Runnable {
+public interface MethodsGenerator extends Generator {
 }

@@ -17,10 +17,21 @@ import java.util.Objects;
 
 public class JavaInnerBuilderOptionSelector {
 
-    private static final DropdownListCellRenderer RENDERER = new DropdownListCellRenderer();
-    private static final List<SelectorOption> OPTIONS = createGeneratorOptions();
+    private final DropdownListCellRenderer renderer = new DropdownListCellRenderer();
 
-    private static List<SelectorOption> createGeneratorOptions() {
+    private final List<PsiFieldMember> members;
+    private final Project project;
+
+    private JavaInnerBuilderOptionSelector(Builder builder) {
+        members = builder.members;
+        project = builder.project;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private List<SelectorOption> createGeneratorOptions() {
         var options = new ArrayList<SelectorOption>();
         options.add(new CheckboxSelectorOption(
                 JavaInnerBuilderOption.WITH_TO_BUILDER_METHOD,
@@ -33,11 +44,7 @@ public class JavaInnerBuilderOptionSelector {
         return options;
     }
 
-    private JavaInnerBuilderOptionSelector() {
-    }
-
-    public static List<PsiFieldMember> selectFieldsAndOptions(final List<PsiFieldMember> members,
-                                                              final Project project) {
+    public List<PsiFieldMember> selectFieldsAndOptions() {
         if (members == null || members.isEmpty()) {
             return List.of();
         }
@@ -64,25 +71,26 @@ public class JavaInnerBuilderOptionSelector {
         return List.of();
     }
 
-    private static JComponent[] buildOptions() {
+    private JComponent[] buildOptions() {
         var propertiesComponent = PropertiesComponent.getInstance();
-        var optionCount = OPTIONS.size();
+        var options = createGeneratorOptions();
+        var optionCount = options.size();
         var checkBoxesArray = new JComponent[optionCount];
         for (int i = 0; i < optionCount; i++) {
-            checkBoxesArray[i] = buildOptions(propertiesComponent, OPTIONS.get(i));
+            checkBoxesArray[i] = buildOptions(propertiesComponent, options.get(i));
         }
         return checkBoxesArray;
     }
 
-    private static JComponent buildOptions(PropertiesComponent propertiesComponent, SelectorOption selectorOption) {
+    private JComponent buildOptions(PropertiesComponent propertiesComponent, SelectorOption selectorOption) {
         if (selectorOption instanceof CheckboxSelectorOption checkboxSelectorOption) {
             return buildCheckbox(propertiesComponent, checkboxSelectorOption);
         }
         return buildDropdown(propertiesComponent, (DropdownSelectorOption) selectorOption);
     }
 
-    private static JComponent buildCheckbox(PropertiesComponent propertiesComponent,
-                                            CheckboxSelectorOption selectorOption) {
+    private JComponent buildCheckbox(PropertiesComponent propertiesComponent,
+                                     CheckboxSelectorOption selectorOption) {
         var optionCheckBox = new NonFocusableCheckBox(selectorOption.caption());
         optionCheckBox.setMnemonic(selectorOption.mnemonic());
         optionCheckBox.setToolTipText(selectorOption.toolTip());
@@ -94,11 +102,11 @@ public class JavaInnerBuilderOptionSelector {
         return optionCheckBox;
     }
 
-    private static JComponent buildDropdown(PropertiesComponent propertiesComponent,
-                                            DropdownSelectorOption selectorOption) {
+    private JComponent buildDropdown(PropertiesComponent propertiesComponent,
+                                     DropdownSelectorOption selectorOption) {
         final var comboBox = new ComboBox<DropdownSelectorOptionValue>();
         comboBox.setEditable(false);
-        comboBox.setRenderer(RENDERER);
+        comboBox.setRenderer(renderer);
         selectorOption.values().forEach(comboBox::addItem);
 
         comboBox.setSelectedItem(setSelectedComboBoxItem(propertiesComponent, selectorOption));
@@ -110,14 +118,14 @@ public class JavaInnerBuilderOptionSelector {
         return labeledComponent;
     }
 
-    private static void setPropertiesComponentValue(PropertiesComponent propertiesComponent,
-                                                    DropdownSelectorOption selectorOption, ItemEvent itemEvent) {
+    private void setPropertiesComponentValue(PropertiesComponent propertiesComponent,
+                                             DropdownSelectorOption selectorOption, ItemEvent itemEvent) {
         var value = (DropdownSelectorOptionValue) itemEvent.getItem();
         propertiesComponent.setValue(selectorOption.option().getProperty(), value.option().getProperty());
     }
 
-    private static DropdownSelectorOptionValue setSelectedComboBoxItem(PropertiesComponent propertiesComponent,
-                                                                       DropdownSelectorOption selectorOption) {
+    private DropdownSelectorOptionValue setSelectedComboBoxItem(PropertiesComponent propertiesComponent,
+                                                                DropdownSelectorOption selectorOption) {
         var selectedValue = propertiesComponent.getValue(selectorOption.option().getProperty());
         var selectorOptionValue = selectorOption.values()
                 .stream()
@@ -129,5 +137,27 @@ public class JavaInnerBuilderOptionSelector {
                     selectorOptionValue.option().getProperty());
         }
         return selectorOptionValue;
+    }
+
+    public static final class Builder {
+        private List<PsiFieldMember> members;
+        private Project project;
+
+        private Builder() {
+        }
+
+        public Builder members(List<PsiFieldMember> members) {
+            this.members = members;
+            return this;
+        }
+
+        public Builder project(Project project) {
+            this.project = project;
+            return this;
+        }
+
+        public JavaInnerBuilderOptionSelector build() {
+            return new JavaInnerBuilderOptionSelector(this);
+        }
     }
 }

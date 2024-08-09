@@ -4,7 +4,7 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.util.PsiUtil;
 
-class BuilderClassGenerator extends AbstractGenerator {
+class BuilderClassGenerator extends AbstractGenerator implements Generator {
 
     private final BuilderClassParams builderClassParams;
 
@@ -16,18 +16,18 @@ class BuilderClassGenerator extends AbstractGenerator {
     }
 
     @Override
-    public void run() {
+    public GenerationResult generate() {
         //builder constructor
         var builderClass = builderClassParams.builderClass();
         var builderConstructor = generateBuilderConstructor();
         addMethod(builderClass, null, builderConstructor, false);
 
         var fieldsGenerator = generatorFactory.createBuilderFieldsGenerator(generatorParams, builderClassParams);
-        fieldsGenerator.run();
+        fieldsGenerator.generate();
 
         var methodsGenerator = generatorFactory.createBuilderMethodsGenerator(generatorParams,
                 builderClassParams, fieldsGenerator);
-        methodsGenerator.run();
+        return methodsGenerator.generate();
     }
 
     private PsiMethod generateBuilderConstructor() {
