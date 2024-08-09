@@ -86,7 +86,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         var param2Type = Utils.resolveGenericParameterType(field.getType(), param2);
         importAdded = addImport(param2Type) || importAdded;
         if (importAdded) {
-            generationResult.set(GenerationResult.Code.ADD_IMPORT);
+            generationResult.set(GenerationResult.Code.IMPORTS_ADDED);
         }
 
         var methodName = "putTo" + StringUtil.capitalize(field.getName());
@@ -124,7 +124,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         var param = Objects.requireNonNull(fieldAddMethod.getParameterList().getParameter(0));
         var paramType = Utils.resolveGenericParameterType(field.getType(), param);
         if (addImport(paramType)) {
-            generationResult.set(GenerationResult.Code.ADD_IMPORT);
+            generationResult.set(GenerationResult.Code.IMPORTS_ADDED);
         }
 
         var methodName = "addTo" + StringUtil.capitalize(field.getName());

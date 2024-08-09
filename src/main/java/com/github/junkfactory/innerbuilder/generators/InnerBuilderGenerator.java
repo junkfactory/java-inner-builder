@@ -16,6 +16,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.Objects;
 
+import static com.github.junkfactory.innerbuilder.generators.GenerationResult.Code.ANNOTATIONS_ADDED;
+import static com.github.junkfactory.innerbuilder.generators.GenerationResult.Code.IMPORTS_ADDED;
 import static com.github.junkfactory.innerbuilder.generators.GenerationResult.NO_RESULT;
 
 class InnerBuilderGenerator extends AbstractGenerator implements Generator {
@@ -58,14 +60,11 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
                 .build();
         var result = generatorFactory.createBuilderClassGenerator(generatorParams, params).generate();
 
-        var project = generatorParams.project();
         var codeStyleManager = generatorParams.psi().codeStyleManager();
-        codeStyleManager.shortenClassReferences(file);
-        if (result.did(GenerationResult.Code.ADD_IMPORT)) {
-            codeStyleManager.removeRedundantImports((PsiJavaFile) file);
-        }
-        CodeStyleManager.getInstance(project).reformat(builderClass);
-        return NO_RESULT;
+        result.when(ANNOTATIONS_ADDED, () -> codeStyleManager.shortenClassReferences(file));
+        result.when(IMPORTS_ADDED, () -> codeStyleManager.removeRedundantImports((PsiJavaFile) file));
+        CodeStyleManager.getInstance(generatorParams.project()).reformat(builderClass);
+        return result;
     }
 
     private PsiMethod generateToBuilderMethod(PsiClass targetClass,

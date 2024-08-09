@@ -7,7 +7,8 @@ public class GenerationResult {
     static final GenerationResult NO_RESULT = new GenerationResult();
 
     public enum Code {
-        ADD_IMPORT
+        IMPORTS_ADDED,
+        ANNOTATIONS_ADDED
     }
 
     private final BitSet result;
@@ -26,5 +27,11 @@ public class GenerationResult {
 
     public boolean did(Code code) {
         return result.get(code.ordinal());
+    }
+
+    public void when(Code code, Runnable runnable) {
+        if (did(code)) {
+            runnable.run();
+        }
     }
 }
