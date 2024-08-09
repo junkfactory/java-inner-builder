@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.util.AstLoadingFilter;
 import org.jetbrains.annotations.NotNull;
 
@@ -47,7 +48,7 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
     }
 
     private static boolean isApplicable(final PsiFile file, final Editor editor) {
-        return FieldCollector.builder()
+        return file instanceof PsiJavaFile && FieldCollector.builder()
                 .file(file)
                 .editor(editor)
                 .build()
@@ -89,6 +90,7 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
                     .file(file)
                     .selectedFields(selectedFields)
                     .factory(JavaPsiFacade.getElementFactory(project))
+                    .codeStyleManager(JavaCodeStyleManager.getInstance(project))
                     .build();
             var generatorParams = GeneratorParams.builder()
                     .project(project)

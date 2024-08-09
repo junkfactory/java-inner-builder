@@ -16,6 +16,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
 
     private final BuilderClassParams builderClassParams;
     private final FieldsGenerator fieldsGenerator;
+    private final GenerationResult generationResult;
 
     private boolean isPublic;
 
@@ -26,10 +27,11 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
         this.fieldsGenerator = fieldsGenerator;
+        this.generationResult = new GenerationResult();
     }
 
     @Override
-    public void run() {
+    public GenerationResult generate() {
         var builderClass = builderClassParams.builderClass();
         var targetClass = builderClassParams.targetClass();
         var targetModifierList = Objects.requireNonNull(targetClass.getModifierList());
@@ -49,6 +51,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
 
         var buildMethod = generateBuildMethod(targetClass);
         addMethod(builderClass, null, buildMethod, builderClassParams.targetClass().isRecord());
+        return generationResult;
     }
 
     private PsiMethod generateValidateMethod() {
@@ -77,10 +80,16 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         //resolve the generic type of the map via the parameter type of the put method
         var param1 = Objects.requireNonNull(fieldPutMethod.getParameterList().getParameter(0));
         var param1Type = Utils.resolveGenericParameterType(field.getType(), param1);
+        var importAdded = addImport(param1Type);
+
         var param2 = Objects.requireNonNull(fieldPutMethod.getParameterList().getParameter(1));
         var param2Type = Utils.resolveGenericParameterType(field.getType(), param2);
-        var methodName = "putTo" + StringUtil.capitalize(field.getName());
+        importAdded = addImport(param2Type) || importAdded;
+        if (importAdded) {
+            generationResult.set(GenerationResult.Code.ADD_IMPORT);
+        }
 
+        var methodName = "putTo" + StringUtil.capitalize(field.getName());
         var methodText = new StringBuilder();
         if (isPublic) {
             methodText.append(PsiModifier.PUBLIC).append(' ');
@@ -114,8 +123,11 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         //resolve the generic type of the collection via the parameter type of the add method
         var param = Objects.requireNonNull(fieldAddMethod.getParameterList().getParameter(0));
         var paramType = Utils.resolveGenericParameterType(field.getType(), param);
-        var methodName = "addTo" + StringUtil.capitalize(field.getName());
+        if (addImport(paramType)) {
+            generationResult.set(GenerationResult.Code.ADD_IMPORT);
+        }
 
+        var methodName = "addTo" + StringUtil.capitalize(field.getName());
         var methodText = new StringBuilder();
         if (isPublic) {
             methodText.append(PsiModifier.PUBLIC).append(' ');
@@ -196,4 +208,5 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
 
         return generatorParams.psi().factory().createMethodFromText(buildMethod.toString(), targetClass);
     }
+
 }

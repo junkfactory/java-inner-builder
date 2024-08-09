@@ -2,13 +2,13 @@ package com.github.junkfactory.innerbuilder.generators;
 
 class InnerBuilderGeneratorFactory implements GeneratorFactory {
     @Override
-    public Runnable createInnerBuilderGenerator(GeneratorParams generatorParams) {
+    public Generator createInnerBuilderGenerator(GeneratorParams generatorParams) {
         return new InnerBuilderGenerator(this, generatorParams);
     }
 
     @Override
-    public Runnable createBuilderClassGenerator(GeneratorParams generatorParams,
-                                                BuilderClassParams builderClassParams) {
+    public Generator createBuilderClassGenerator(GeneratorParams generatorParams,
+                                                 BuilderClassParams builderClassParams) {
         return new BuilderClassGenerator(this, generatorParams, builderClassParams);
     }
 

@@ -6,10 +6,10 @@ public interface GeneratorFactory {
         return new InnerBuilderGeneratorFactory();
     }
 
-    Runnable createInnerBuilderGenerator(GeneratorParams generatorParams);
+    Generator createInnerBuilderGenerator(GeneratorParams generatorParams);
 
-    Runnable createBuilderClassGenerator(GeneratorParams generatorParams,
-                                         BuilderClassParams builderClassParams);
+    Generator createBuilderClassGenerator(GeneratorParams generatorParams,
+                                          BuilderClassParams builderClassParams);
 
     FieldsGenerator createBuilderFieldsGenerator(GeneratorParams generatorParams,
                                                  BuilderClassParams builderClassParams);

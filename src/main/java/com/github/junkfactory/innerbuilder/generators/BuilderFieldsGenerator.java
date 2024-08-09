@@ -4,8 +4,6 @@ import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
-import com.intellij.psi.PsiModifier;
-import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
@@ -29,13 +27,14 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
     }
 
     @Override
-    public void run() {
+    public GenerationResult generate() {
         PsiField lastAddedField = null;
         for (var fieldMember : generatorParams.psi().selectedFields()) {
             lastAddedField = createOrUpdateField(builderClassParams.builderClass(), fieldMember, lastAddedField);
             fields.add(lastAddedField);
         }
         cleanupFields(builderClassParams.builderClass());
+        return GenerationResult.NO_RESULT;
     }
 
     private void cleanupFields(PsiClass builderClass) {
@@ -46,8 +45,8 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
         }
     }
 
-    private PsiField createOrUpdateField(final PsiClass builderClass, final PsiFieldMember member,
-                                         @Nullable final PsiElement last) {
+    private PsiField createOrUpdateField(PsiClass builderClass, PsiFieldMember member,
+                                         @Nullable PsiElement last) {
         var psiFactory = generatorParams.psi().factory();
         var field = member.getElement();
         var fieldName = field.getName();
@@ -56,10 +55,7 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
         if (existingField == null || Utils.areTypesPresentableNotEqual(existingField.getType(), fieldType)) {
             deleteFieldAndMethodIfExists(builderClass, existingField);
             var newField = psiFactory.createField(fieldName, fieldType);
-            if (field.hasInitializer()) {
-                PsiUtil.setModifierProperty(newField, PsiModifier.FINAL, true);
-                newField.setInitializer(field.getInitializer());
-            }
+            newField.setInitializer(field.getInitializer());
             if (!builderClassParams.targetClass().isRecord()) {
                 field.setInitializer(null);
             }
