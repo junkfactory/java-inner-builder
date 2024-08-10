@@ -5,8 +5,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 public enum JavaInnerBuilderOption {
-    WITH_TO_BUILDER_METHOD("toBuilder", "Generate 'toBuilder()' method"),
-    WITH_VALIDATE_METHOD("validate", "Generate 'validate()' method");
+    WITH_TO_BUILDER_METHOD("JavaInnerBuilderOption.toBuilder", "Generate 'toBuilder()' method"),
+    WITH_VALIDATE_METHOD("JavaInnerBuilderOption.validate", "Generate 'validate()' method"),
+    WITH_BUILDER_CLASS_ANNOTATIONS("JavaInnerBuilderOption.builderClassAnnotations",
+            "Generate annotations for the builder class");
 
     private final String property;
     private final String description;
