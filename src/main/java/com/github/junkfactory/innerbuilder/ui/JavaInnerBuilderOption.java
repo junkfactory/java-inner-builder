@@ -5,31 +5,32 @@ import java.util.Objects;
 import java.util.Optional;
 
 public enum JavaInnerBuilderOption {
-    WITH_TO_BUILDER_METHOD("JavaInnerBuilderOption.toBuilder", "Generate 'toBuilder()' method"),
-    WITH_VALIDATE_METHOD("JavaInnerBuilderOption.validate", "Generate 'validate()' method"),
+    WITH_TO_BUILDER_METHOD("JavaInnerBuilderOption.toBuilder",
+            "Generate 'toBuilder()' method",
+            Type.BOOLEAN),
+    WITH_VALIDATE_METHOD("JavaInnerBuilderOption.validate",
+            "Generate 'validate()' method",
+            Type.BOOLEAN),
     WITH_BUILDER_CLASS_ANNOTATIONS("JavaInnerBuilderOption.builderClassAnnotations",
-            "Generate annotations for the builder class");
+            "Generate annotations for the builder class",
+            Type.LIST);
 
     private final String property;
     private final String description;
-    private final Boolean booleanProperty;
+    private final Type type;
 
-    JavaInnerBuilderOption(final String property, String description) {
-        this(property, description, true);
-    }
-
-    JavaInnerBuilderOption(final String property, String description, final Boolean booleanProperty) {
+    JavaInnerBuilderOption(String property, String description, Type type) {
         this.property = String.format("JavaInnerBuilder.%s", property);
         this.description = description;
-        this.booleanProperty = booleanProperty;
+        this.type = type;
     }
 
     public String getProperty() {
         return property;
     }
 
-    public Boolean isBooleanProperty() {
-        return booleanProperty;
+    public Type getType() {
+        return type;
     }
 
     public String getDescription() {
@@ -42,4 +43,7 @@ public enum JavaInnerBuilderOption {
                 .findFirst();
     }
 
+    public enum Type {
+        BOOLEAN, LIST
+    }
 }

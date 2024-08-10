@@ -2,6 +2,7 @@ package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiJavaFile;
@@ -59,12 +60,13 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
                 .builderType(builderType)
                 .build();
         var result = generatorFactory.createBuilderClassGenerator(generatorParams, params).generate();
-
+        generationResult.merge(result);
+        targetClass.add(builderClass);
         var codeStyleManager = generatorParams.psi().codeStyleManager();
-        result.when(ANNOTATIONS_ADDED, () -> codeStyleManager.shortenClassReferences(file));
-        result.when(IMPORTS_ADDED, () -> codeStyleManager.removeRedundantImports((PsiJavaFile) file));
+        generationResult.when(ANNOTATIONS_ADDED, () -> codeStyleManager.shortenClassReferences(targetClass));
+        generationResult.when(IMPORTS_ADDED, () -> codeStyleManager.removeRedundantImports((PsiJavaFile) file));
         CodeStyleManager.getInstance(generatorParams.project()).reformat(builderClass);
-        return result;
+        return generationResult;
     }
 
     private PsiMethod generateToBuilderMethod(PsiClass targetClass,
@@ -162,11 +164,22 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
 
     @NotNull
     private PsiClass createBuilderClass(final PsiClass targetClass) {
-        var builderClass = (PsiClass) targetClass.add(generatorParams.psi().factory()
-                .createClass(BUILDER_CLASS_NAME));
-        PsiUtil.setModifierProperty(builderClass, PsiModifier.STATIC, true);
-        PsiUtil.setModifierProperty(builderClass, PsiModifier.FINAL, true);
-        return builderClass;
+        var classDef = new StringBuilder();
+        if (generatorParams.options().contains(JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS)) {
+            var propertiesComponent = PropertiesComponent.getInstance();
+            var annotationOptions =
+                    propertiesComponent.getList(JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS.getProperty());
+            if (annotationOptions != null) {
+                annotationOptions.forEach(a -> classDef.append('@').append(a).append(System.lineSeparator()));
+                generationResult.set(GenerationResult.Code.ANNOTATIONS_ADDED);
+            }
+        }
+        classDef.append("public static final class ")
+                .append(BUILDER_CLASS_NAME)
+                .append(" {}")
+                .append(System.lineSeparator());
+        return generatorParams.psi().factory().createClassFromText(classDef.toString(), targetClass)
+                .getInnerClasses()[0];
     }
 
 }

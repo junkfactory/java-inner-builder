@@ -3,6 +3,7 @@ package com.github.junkfactory.innerbuilder.generators;
 import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 
 import java.util.List;
@@ -10,7 +11,8 @@ import java.util.List;
 public record PsiParams(PsiFile file,
                         List<PsiFieldMember> selectedFields,
                         PsiElementFactory factory,
-                        JavaCodeStyleManager codeStyleManager) {
+                        JavaCodeStyleManager codeStyleManager,
+                        PsiManager psiManager) {
 
     public static Builder builder() {
         return new Builder();
@@ -21,6 +23,7 @@ public record PsiParams(PsiFile file,
         private List<PsiFieldMember> selectedFields;
         private PsiElementFactory factory;
         private JavaCodeStyleManager codeStyleManager;
+        private PsiManager psiManager;
 
         private Builder() {
         }
@@ -45,8 +48,13 @@ public record PsiParams(PsiFile file,
             return this;
         }
 
+        public Builder psiManager(PsiManager psiManager) {
+            this.psiManager = psiManager;
+            return this;
+        }
+
         public PsiParams build() {
-            return new PsiParams(file, selectedFields, factory, codeStyleManager);
+            return new PsiParams(file, selectedFields, factory, codeStyleManager, psiManager);
         }
     }
 }

@@ -7,6 +7,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.LabeledComponent;
+import com.intellij.openapi.ui.Messages;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.util.ClassUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.NonFocusableCheckBox;
 import com.intellij.ui.border.CustomLineBorder;
@@ -37,12 +40,6 @@ public class JavaInnerBuilderOptionSelector {
 
     private List<SelectorOption> createGeneratorOptions() {
         var options = new ArrayList<SelectorOption>();
-        options.add(new TextAreaOption(
-                JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS,
-                5,
-                40,
-                "Generate annotations for the builder class"
-        ));
         options.add(new CheckboxSelectorOption(
                 JavaInnerBuilderOption.WITH_TO_BUILDER_METHOD,
                 'o'
@@ -50,6 +47,12 @@ public class JavaInnerBuilderOptionSelector {
         options.add(new CheckboxSelectorOption(
                 JavaInnerBuilderOption.WITH_VALIDATE_METHOD,
                 'v'
+        ));
+        options.add(new TextAreaOption(
+                JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS,
+                5,
+                40,
+                "Use fully qualified class names separated by new lines."
         ));
         return options;
     }
@@ -67,15 +70,26 @@ public class JavaInnerBuilderOptionSelector {
 
         final PsiFieldMember[] memberArray = members.toArray(new PsiFieldMember[0]);
 
+        while (true) {
+            try {
+                return showOptionsDialog(memberArray, options);
+            } catch (IllegalArgumentException e) {
+                Messages.showErrorDialog(e.getMessage(), "Invalid Options");
+            }
+        }
+    }
+
+    private List<PsiFieldMember> showOptionsDialog(PsiFieldMember[] memberArray, JComponent[] optionsArray) {
         final MemberChooser<PsiFieldMember> chooser = new MemberChooser<>(memberArray,
                 false, // allowEmptySelection
                 true,  // allowMultiSelection
-                project, null, options);
+                project, null, optionsArray);
 
         chooser.setTitle("Select Fields and Options for the Builder");
         chooser.selectElements(memberArray);
         if (chooser.showAndGet()) {
-            setPropertyValuesFromOptions(chooser.getOptionControls());
+            var optionControls = chooser.getOptionControls();
+            setPropertyValuesFromOptions(optionControls);
             return chooser.getSelectedElements();
         }
         return List.of();
@@ -86,8 +100,9 @@ public class JavaInnerBuilderOptionSelector {
         for (var option : options) {
             if (option instanceof LabeledComponent<?> labeledComponent &&
                     labeledComponent.getComponent() instanceof JTextArea textArea) {
+                var annotations = getAnnotations(textArea);
                 var textAreaOption = (JavaInnerBuilderOption) textArea.getClientProperty(JavaInnerBuilderOption.class);
-                propertiesComponent.setValue(textAreaOption.getProperty(), textArea.getText());
+                propertiesComponent.setList(textAreaOption.getProperty(), annotations);
             } else if (option instanceof NonFocusableCheckBox checkBox) {
                 var checkboxSelectorOption =
                         (JavaInnerBuilderOption) option.getClientProperty(JavaInnerBuilderOption.class);
@@ -103,6 +118,33 @@ public class JavaInnerBuilderOptionSelector {
             }
         }
     }
+
+    private List<String> getAnnotations(JTextArea textArea) {
+        var annotations = textArea.getText();
+        if (annotations.isBlank()) {
+            return List.of();
+        }
+        var psiManager = PsiManager.getInstance(project);
+        var errors = new StringBuilder();
+        var lines = annotations.split("\n");
+        for (var line : lines) {
+            if (line.isBlank()) {
+                continue;
+            }
+            if (line.charAt(0) == '@') {
+                line = line.substring(1);
+            }
+            var psiClass = ClassUtil.findPsiClass(psiManager, line.trim());
+            if (null == psiClass) {
+                errors.append(" - ").append(line).append(System.lineSeparator());
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException(errors.insert(0, "Invalid Annotations:\n").toString());
+        }
+        return List.of(lines);
+    }
+
 
     private JComponent[] buildOptions() {
         var propertiesComponent = PropertiesComponent.getInstance();
@@ -129,7 +171,14 @@ public class JavaInnerBuilderOptionSelector {
                                                       TextAreaOption textAreaOption) {
         var textArea = new JTextArea(textAreaOption.numLines(), textAreaOption.numColumns());
         textArea.putClientProperty(JavaInnerBuilderOption.class, textAreaOption.option());
-        textArea.setText(propertiesComponent.getValue(textAreaOption.option().getProperty()));
+        if (textAreaOption.option().getType() == JavaInnerBuilderOption.Type.LIST) {
+            var annotations = propertiesComponent.getList(textAreaOption.option().getProperty());
+            if (null != annotations) {
+                textArea.setText(String.join("\n", annotations));
+            }
+        } else {
+            textArea.setText(propertiesComponent.getValue(textAreaOption.option().getProperty()));
+        }
         textArea.setBorder(new CustomLineBorder(JBColor.border(), JBUI.insets(1)));
         var labeledComponent = LabeledComponent.create(textArea, textAreaOption.caption());
         labeledComponent.setToolTipText(textAreaOption.toolTip());

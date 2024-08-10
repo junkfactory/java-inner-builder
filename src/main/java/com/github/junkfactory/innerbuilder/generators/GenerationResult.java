@@ -34,4 +34,9 @@ public class GenerationResult {
             runnable.run();
         }
     }
+
+    public GenerationResult merge(GenerationResult other) {
+        result.or(other.result);
+        return this;
+    }
 }

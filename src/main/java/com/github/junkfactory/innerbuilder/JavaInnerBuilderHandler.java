@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.util.AstLoadingFilter;
 import org.jetbrains.annotations.NotNull;
@@ -91,6 +92,7 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
                     .selectedFields(selectedFields)
                     .factory(JavaPsiFacade.getElementFactory(project))
                     .codeStyleManager(JavaCodeStyleManager.getInstance(project))
+                    .psiManager(PsiManager.getInstance(project))
                     .build();
             var generatorParams = GeneratorParams.builder()
                     .project(project)
@@ -108,17 +110,21 @@ class JavaInnerBuilderHandler implements LanguageCodeInsightActionHandler {
         final var options = EnumSet.noneOf(JavaInnerBuilderOption.class);
         final var propertiesComponent = PropertiesComponent.getInstance();
         for (var option : JavaInnerBuilderOption.values()) {
-
-            if (Boolean.TRUE.equals(option.isBooleanProperty())) {
-                final boolean currentSetting = propertiesComponent.getBoolean(option.getProperty(), false);
-                if (currentSetting) {
-                    options.add(option);
-                }
-            } else {
-                String currentValue = String.valueOf(propertiesComponent.getValue(option.getProperty()));
-                if (currentValue != null) {
+            switch (option.getType()) {
+                case BOOLEAN:
+                    if (propertiesComponent.getBoolean(option.getProperty(), false)) {
+                        options.add(option);
+                    }
+                    break;
+                case LIST:
+                    var list = propertiesComponent.getList(option.getProperty());
+                    if (null != list && !list.isEmpty()) {
+                        options.add(option);
+                    }
+                    break;
+                default:
+                    String currentValue = String.valueOf(propertiesComponent.getValue(option.getProperty()));
                     JavaInnerBuilderOption.findValue(currentValue).ifPresent(options::add);
-                }
             }
         }
         return options;
