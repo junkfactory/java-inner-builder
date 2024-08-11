@@ -27,7 +27,7 @@ class BuilderClassGenerator extends AbstractGenerator implements Generator {
 
         var methodsGenerator = generatorFactory.createBuilderMethodsGenerator(generatorParams,
                 builderClassParams, fieldsGenerator);
-        return methodsGenerator.generate();
+        return generationResult.merge(methodsGenerator.generate());
     }
 
     private PsiMethod generateBuilderConstructor() {

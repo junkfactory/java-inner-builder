@@ -14,7 +14,10 @@ import com.intellij.psi.util.PsiUtil;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class Utils {
     @NonNls
@@ -134,5 +137,19 @@ public class Utils {
         return null != initializerClass && initializerClass.hasModifierProperty(PsiModifier.ABSTRACT);
     }
 
+    public static List<String> stringToList(String str) {
+        if (null == str || str.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(str.split(System.lineSeparator()))
+                .map(String::trim)
+                .filter(Predicate.not(String::isBlank))
+                .toList();
+    }
+
+    public static String parseType(String text) {
+        var parenthesisIndex = text.indexOf('(');
+        return parenthesisIndex == -1 ? text : text.substring(0, parenthesisIndex);
+    }
 
 }

@@ -1,16 +1,21 @@
 package com.github.junkfactory.innerbuilder.ui;
 
+import com.github.junkfactory.innerbuilder.generators.Utils;
 import com.intellij.codeInsight.generation.PsiFieldMember;
-import com.intellij.ide.util.MemberChooser;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.LabeledComponent;
+import com.intellij.psi.PsiManager;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.NonFocusableCheckBox;
+import com.intellij.ui.border.CustomLineBorder;
+import com.intellij.util.ui.JBUI;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.JComponent;
-import java.awt.event.ItemEvent;
+import javax.swing.JTextArea;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -41,6 +46,12 @@ public class JavaInnerBuilderOptionSelector {
                 JavaInnerBuilderOption.WITH_VALIDATE_METHOD,
                 'v'
         ));
+        options.add(new TextAreaOption(
+                JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS,
+                5,
+                40,
+                "Use fully qualified class names separated by new lines."
+        ));
         return options;
     }
 
@@ -53,22 +64,48 @@ public class JavaInnerBuilderOptionSelector {
             return members;
         }
 
-        final JComponent[] optionCheckBoxes = buildOptions();
-
-        final PsiFieldMember[] memberArray = members.toArray(new PsiFieldMember[0]);
-
-        final MemberChooser<PsiFieldMember> chooser = new MemberChooser<>(memberArray,
+        var optionsArray = buildOptions();
+        var memberArray = members.toArray(new PsiFieldMember[0]);
+        var chooser = new ValidatingFieldMemberChooser(memberArray,
                 false, // allowEmptySelection
                 true,  // allowMultiSelection
-                project, null, optionCheckBoxes);
+                project, null, optionsArray) {
+        };
+        for (var optionComponent : optionsArray) {
+            var builderOption = (JavaInnerBuilderOption) optionComponent.getClientProperty(
+                    JavaInnerBuilderOption.class);
+            builderOption.createValidator(PsiManager.getInstance(project), chooser.getDisposable(), optionComponent);
+        }
 
         chooser.setTitle("Select Fields and Options for the Builder");
         chooser.selectElements(memberArray);
         if (chooser.showAndGet()) {
+            var optionControls = chooser.getOptionControls();
+            setPropertyValuesFromOptions(optionControls);
             return chooser.getSelectedElements();
         }
-
         return List.of();
+    }
+
+    private void setPropertyValuesFromOptions(JComponent[] optionComponents) {
+        var propertiesComponent = PropertiesComponent.getInstance();
+        for (var component : optionComponents) {
+            var option = (JavaInnerBuilderOption) component.getClientProperty(JavaInnerBuilderOption.class);
+            if (component instanceof LabeledComponent<?> labeledComponent &&
+                    labeledComponent.getComponent() instanceof JTextArea textArea) {
+                var annotations = Utils.stringToList(textArea.getText());
+                propertiesComponent.setList(option.getProperty(), annotations);
+            } else if (component instanceof NonFocusableCheckBox checkBox) {
+                propertiesComponent.setValue(option.getProperty(),
+                        Boolean.toString(checkBox.isSelected()));
+            } else if (component instanceof LabeledComponent<?> labeledComponent &&
+                    labeledComponent.getComponent() instanceof ComboBox<?> comboBox) {
+                var selectedValue = (DropdownSelectorOptionValue) comboBox.getSelectedItem();
+                if (null != selectedValue) {
+                    propertiesComponent.setValue(option.getProperty(), selectedValue.option().getProperty());
+                }
+            }
+        }
     }
 
     private JComponent[] buildOptions() {
@@ -77,7 +114,10 @@ public class JavaInnerBuilderOptionSelector {
         var optionCount = options.size();
         var checkBoxesArray = new JComponent[optionCount];
         for (int i = 0; i < optionCount; i++) {
-            checkBoxesArray[i] = buildOptions(propertiesComponent, options.get(i));
+            var option = options.get(i);
+            var optionComponent = buildOptions(propertiesComponent, option);
+            optionComponent.putClientProperty(JavaInnerBuilderOption.class, option.option());
+            checkBoxesArray[i] = optionComponent;
         }
         return checkBoxesArray;
     }
@@ -85,8 +125,28 @@ public class JavaInnerBuilderOptionSelector {
     private JComponent buildOptions(PropertiesComponent propertiesComponent, SelectorOption selectorOption) {
         if (selectorOption instanceof CheckboxSelectorOption checkboxSelectorOption) {
             return buildCheckbox(propertiesComponent, checkboxSelectorOption);
+        } else if (selectorOption instanceof TextAreaOption textAreaOption) {
+            return buildTextArea(propertiesComponent, textAreaOption);
         }
         return buildDropdown(propertiesComponent, (DropdownSelectorOption) selectorOption);
+    }
+
+    @NotNull
+    private LabeledComponent<JTextArea> buildTextArea(PropertiesComponent propertiesComponent,
+                                                      TextAreaOption textAreaOption) {
+        var textArea = new JTextArea(textAreaOption.numLines(), textAreaOption.numColumns());
+        if (textAreaOption.option().getType() == JavaInnerBuilderOption.Type.LIST) {
+            var annotations = propertiesComponent.getList(textAreaOption.option().getProperty());
+            if (null != annotations) {
+                textArea.setText(String.join("\n", annotations));
+            }
+        } else {
+            textArea.setText(propertiesComponent.getValue(textAreaOption.option().getProperty()));
+        }
+        textArea.setBorder(new CustomLineBorder(JBColor.border(), JBUI.insets(1)));
+        var labeledComponent = LabeledComponent.create(textArea, textAreaOption.caption());
+        labeledComponent.setToolTipText(textAreaOption.toolTip());
+        return labeledComponent;
     }
 
     private JComponent buildCheckbox(PropertiesComponent propertiesComponent,
@@ -97,8 +157,6 @@ public class JavaInnerBuilderOptionSelector {
 
         var optionProperty = selectorOption.option().getProperty();
         optionCheckBox.setSelected(propertiesComponent.isTrueValue(optionProperty));
-        optionCheckBox.addItemListener(
-                event -> propertiesComponent.setValue(optionProperty, Boolean.toString(optionCheckBox.isSelected())));
         return optionCheckBox;
     }
 
@@ -110,18 +168,10 @@ public class JavaInnerBuilderOptionSelector {
         selectorOption.values().forEach(comboBox::addItem);
 
         comboBox.setSelectedItem(setSelectedComboBoxItem(propertiesComponent, selectorOption));
-        comboBox.addItemListener(event -> setPropertiesComponentValue(propertiesComponent, selectorOption, event));
 
         var labeledComponent = LabeledComponent.create(comboBox, selectorOption.caption());
         labeledComponent.setToolTipText(selectorOption.toolTip());
-
         return labeledComponent;
-    }
-
-    private void setPropertiesComponentValue(PropertiesComponent propertiesComponent,
-                                             DropdownSelectorOption selectorOption, ItemEvent itemEvent) {
-        var value = (DropdownSelectorOptionValue) itemEvent.getItem();
-        propertiesComponent.setValue(selectorOption.option().getProperty(), value.option().getProperty());
     }
 
     private DropdownSelectorOptionValue setSelectedComboBoxItem(PropertiesComponent propertiesComponent,

@@ -31,10 +31,12 @@ abstract class AbstractGenerator {
 
     protected final GeneratorFactory generatorFactory;
     protected final GeneratorParams generatorParams;
+    protected final GenerationResult generationResult;
 
     protected AbstractGenerator(GeneratorFactory generatorFactory, GeneratorParams generatorParams) {
         this.generatorFactory = generatorFactory;
         this.generatorParams = generatorParams;
+        this.generationResult = new GenerationResult();
     }
 
     protected PsiElement addElement(PsiElement target, PsiElement element, PsiElement after) {

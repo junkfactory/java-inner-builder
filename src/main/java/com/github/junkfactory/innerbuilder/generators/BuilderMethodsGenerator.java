@@ -16,7 +16,6 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
 
     private final BuilderClassParams builderClassParams;
     private final FieldsGenerator fieldsGenerator;
-    private final GenerationResult generationResult;
 
     private boolean isPublic;
 
@@ -27,7 +26,6 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         super(generatorFactory, generatorParams);
         this.builderClassParams = builderClassParams;
         this.fieldsGenerator = fieldsGenerator;
-        this.generationResult = new GenerationResult();
     }
 
     @Override
