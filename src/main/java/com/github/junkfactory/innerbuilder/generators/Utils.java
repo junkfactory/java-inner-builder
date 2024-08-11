@@ -147,4 +147,9 @@ public class Utils {
                 .toList();
     }
 
+    public static String parseType(String text) {
+        var parenthesisIndex = text.indexOf('(');
+        return parenthesisIndex == -1 ? text : text.substring(0, parenthesisIndex);
+    }
+
 }

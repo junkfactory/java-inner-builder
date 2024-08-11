@@ -31,7 +31,8 @@ public enum JavaInnerBuilderOption {
                 if (j instanceof JTextArea textArea) {
                     var errors = new StringBuilder();
                     var annotations = Utils.stringToList(textArea.getText());
-                    for (var annotation : annotations) {
+                    for (var annotationText : annotations) {
+                        var annotation = Utils.parseType(annotationText);
                         if (ClassUtil.findPsiClass(p, annotation) == null) {
                             errors.append(" - ").append(annotation).append("\n");
                         }
