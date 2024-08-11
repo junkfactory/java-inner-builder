@@ -1,15 +1,13 @@
 package com.github.junkfactory.innerbuilder.ui;
 
+import com.github.junkfactory.innerbuilder.generators.Utils;
 import com.intellij.codeInsight.generation.PsiFieldMember;
-import com.intellij.ide.util.MemberChooser;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.LabeledComponent;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.PsiManager;
-import com.intellij.psi.util.ClassUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.NonFocusableCheckBox;
 import com.intellij.ui.border.CustomLineBorder;
@@ -66,24 +64,18 @@ public class JavaInnerBuilderOptionSelector {
             return members;
         }
 
-        final JComponent[] options = buildOptions();
-
-        final PsiFieldMember[] memberArray = members.toArray(new PsiFieldMember[0]);
-
-        while (true) {
-            try {
-                return showOptionsDialog(memberArray, options);
-            } catch (IllegalArgumentException e) {
-                Messages.showErrorDialog(e.getMessage(), "Invalid Options");
-            }
-        }
-    }
-
-    private List<PsiFieldMember> showOptionsDialog(PsiFieldMember[] memberArray, JComponent[] optionsArray) {
-        final MemberChooser<PsiFieldMember> chooser = new MemberChooser<>(memberArray,
+        var optionsArray = buildOptions();
+        var memberArray = members.toArray(new PsiFieldMember[0]);
+        var chooser = new ValidatingFieldMemberChooser(memberArray,
                 false, // allowEmptySelection
                 true,  // allowMultiSelection
-                project, null, optionsArray);
+                project, null, optionsArray) {
+        };
+        for (var optionComponent : optionsArray) {
+            var builderOption = (JavaInnerBuilderOption) optionComponent.getClientProperty(
+                    JavaInnerBuilderOption.class);
+            builderOption.createValidator(PsiManager.getInstance(project), chooser.getDisposable(), optionComponent);
+        }
 
         chooser.setTitle("Select Fields and Options for the Builder");
         chooser.selectElements(memberArray);
@@ -95,56 +87,26 @@ public class JavaInnerBuilderOptionSelector {
         return List.of();
     }
 
-    private void setPropertyValuesFromOptions(JComponent[] options) {
+    private void setPropertyValuesFromOptions(JComponent[] optionComponents) {
         var propertiesComponent = PropertiesComponent.getInstance();
-        for (var option : options) {
-            if (option instanceof LabeledComponent<?> labeledComponent &&
+        for (var component : optionComponents) {
+            var option = (JavaInnerBuilderOption) component.getClientProperty(JavaInnerBuilderOption.class);
+            if (component instanceof LabeledComponent<?> labeledComponent &&
                     labeledComponent.getComponent() instanceof JTextArea textArea) {
-                var annotations = getAnnotations(textArea);
-                var textAreaOption = (JavaInnerBuilderOption) textArea.getClientProperty(JavaInnerBuilderOption.class);
-                propertiesComponent.setList(textAreaOption.getProperty(), annotations);
-            } else if (option instanceof NonFocusableCheckBox checkBox) {
-                var checkboxSelectorOption =
-                        (JavaInnerBuilderOption) option.getClientProperty(JavaInnerBuilderOption.class);
-                propertiesComponent.setValue(checkboxSelectorOption.getProperty(),
+                var annotations = Utils.stringToList(textArea.getText());
+                propertiesComponent.setList(option.getProperty(), annotations);
+            } else if (component instanceof NonFocusableCheckBox checkBox) {
+                propertiesComponent.setValue(option.getProperty(),
                         Boolean.toString(checkBox.isSelected()));
-            } else if (option instanceof LabeledComponent<?> labeledComponent &&
+            } else if (component instanceof LabeledComponent<?> labeledComponent &&
                     labeledComponent.getComponent() instanceof ComboBox<?> comboBox) {
-                var selectorOption = (JavaInnerBuilderOption) option.getClientProperty(JavaInnerBuilderOption.class);
                 var selectedValue = (DropdownSelectorOptionValue) comboBox.getSelectedItem();
                 if (null != selectedValue) {
-                    propertiesComponent.setValue(selectorOption.getProperty(), selectedValue.option().getProperty());
+                    propertiesComponent.setValue(option.getProperty(), selectedValue.option().getProperty());
                 }
             }
         }
     }
-
-    private List<String> getAnnotations(JTextArea textArea) {
-        var annotations = textArea.getText();
-        if (annotations.isBlank()) {
-            return List.of();
-        }
-        var psiManager = PsiManager.getInstance(project);
-        var errors = new StringBuilder();
-        var lines = annotations.split("\n");
-        for (var line : lines) {
-            if (line.isBlank()) {
-                continue;
-            }
-            if (line.charAt(0) == '@') {
-                line = line.substring(1);
-            }
-            var psiClass = ClassUtil.findPsiClass(psiManager, line.trim());
-            if (null == psiClass) {
-                errors.append(" - ").append(line).append(System.lineSeparator());
-            }
-        }
-        if (!errors.isEmpty()) {
-            throw new IllegalArgumentException(errors.insert(0, "Invalid Annotations:\n").toString());
-        }
-        return List.of(lines);
-    }
-
 
     private JComponent[] buildOptions() {
         var propertiesComponent = PropertiesComponent.getInstance();
@@ -152,7 +114,10 @@ public class JavaInnerBuilderOptionSelector {
         var optionCount = options.size();
         var checkBoxesArray = new JComponent[optionCount];
         for (int i = 0; i < optionCount; i++) {
-            checkBoxesArray[i] = buildOptions(propertiesComponent, options.get(i));
+            var option = options.get(i);
+            var optionComponent = buildOptions(propertiesComponent, option);
+            optionComponent.putClientProperty(JavaInnerBuilderOption.class, option.option());
+            checkBoxesArray[i] = optionComponent;
         }
         return checkBoxesArray;
     }
@@ -170,7 +135,6 @@ public class JavaInnerBuilderOptionSelector {
     private LabeledComponent<JTextArea> buildTextArea(PropertiesComponent propertiesComponent,
                                                       TextAreaOption textAreaOption) {
         var textArea = new JTextArea(textAreaOption.numLines(), textAreaOption.numColumns());
-        textArea.putClientProperty(JavaInnerBuilderOption.class, textAreaOption.option());
         if (textAreaOption.option().getType() == JavaInnerBuilderOption.Type.LIST) {
             var annotations = propertiesComponent.getList(textAreaOption.option().getProperty());
             if (null != annotations) {
@@ -188,7 +152,6 @@ public class JavaInnerBuilderOptionSelector {
     private JComponent buildCheckbox(PropertiesComponent propertiesComponent,
                                      CheckboxSelectorOption selectorOption) {
         var optionCheckBox = new NonFocusableCheckBox(selectorOption.caption());
-        optionCheckBox.putClientProperty(JavaInnerBuilderOption.class, selectorOption.option());
         optionCheckBox.setMnemonic(selectorOption.mnemonic());
         optionCheckBox.setToolTipText(selectorOption.toolTip());
 
@@ -200,7 +163,6 @@ public class JavaInnerBuilderOptionSelector {
     private JComponent buildDropdown(PropertiesComponent propertiesComponent,
                                      DropdownSelectorOption selectorOption) {
         final var comboBox = new ComboBox<DropdownSelectorOptionValue>();
-        comboBox.putClientProperty(JavaInnerBuilderOption.class, selectorOption.option());
         comboBox.setEditable(false);
         comboBox.setRenderer(renderer);
         selectorOption.values().forEach(comboBox::addItem);
