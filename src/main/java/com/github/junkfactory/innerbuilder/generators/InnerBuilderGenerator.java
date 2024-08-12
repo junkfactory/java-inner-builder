@@ -2,7 +2,6 @@ package com.github.junkfactory.innerbuilder.generators;
 
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiJavaFile;
@@ -164,21 +163,11 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
 
     @NotNull
     private PsiClass createBuilderClass(final PsiClass targetClass) {
-        var classDef = new StringBuilder();
-        if (generatorParams.options().contains(JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS)) {
-            var propertiesComponent = PropertiesComponent.getInstance();
-            var annotationOptions =
-                    propertiesComponent.getList(JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS.getProperty());
-            if (annotationOptions != null) {
-                annotationOptions.forEach(a -> classDef.append('@').append(a).append(System.lineSeparator()));
-                generationResult.set(GenerationResult.Code.ANNOTATIONS_ADDED);
-            }
-        }
-        classDef.append("public static final class ")
-                .append(BUILDER_CLASS_NAME)
-                .append(" {}")
-                .append(System.lineSeparator());
-        return generatorParams.psi().factory().createClassFromText(classDef.toString(), targetClass)
+        String classDef = "public static final class " +
+                BUILDER_CLASS_NAME +
+                " {}" +
+                System.lineSeparator();
+        return generatorParams.psi().factory().createClassFromText(classDef, targetClass)
                 .getInnerClasses()[0];
     }
 

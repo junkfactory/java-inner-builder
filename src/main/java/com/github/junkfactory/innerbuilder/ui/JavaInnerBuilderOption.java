@@ -1,18 +1,10 @@
 package com.github.junkfactory.innerbuilder.ui;
 
-import com.github.junkfactory.innerbuilder.generators.Utils;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.LabeledComponent;
-import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.psi.PsiManager;
-import com.intellij.psi.util.ClassUtil;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.border.CustomLineBorder;
-import com.intellij.util.ui.JBUI;
 
 import javax.swing.JComponent;
-import javax.swing.JTextArea;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,29 +15,7 @@ public enum JavaInnerBuilderOption {
             Type.BOOLEAN),
     WITH_VALIDATE_METHOD("JavaInnerBuilderOption.validate",
             "Generate 'validate()' method",
-            Type.BOOLEAN),
-    WITH_BUILDER_CLASS_ANNOTATIONS("JavaInnerBuilderOption.builderClassAnnotations",
-            "Generate annotations for the builder class",
-            Type.LIST,
-            (p, d, j) -> new ComponentValidator(d).withValidator(() -> {
-                if (j instanceof JTextArea textArea) {
-                    var errors = new StringBuilder();
-                    var annotations = Utils.stringToList(textArea.getText());
-                    for (var annotationText : annotations) {
-                        var annotation = Utils.parseType(annotationText);
-                        if (ClassUtil.findPsiClass(p, annotation) == null) {
-                            errors.append(" - ").append(annotation).append("\n");
-                        }
-                    }
-                    if (!errors.isEmpty()) {
-                        textArea.setBorder(new CustomLineBorder(JBColor.RED, JBUI.insets(1)));
-                        return new ValidationInfo(errors.insert(0, "Annotations not found")
-                                .append(System.lineSeparator()).toString(), textArea);
-                    }
-                    textArea.setBorder(new CustomLineBorder(JBColor.border(), JBUI.insets(1)));
-                }
-                return null;
-            }).installOn(j));
+            Type.BOOLEAN);
 
     private final String property;
     private final String description;

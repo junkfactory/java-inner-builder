@@ -46,12 +46,6 @@ public class JavaInnerBuilderOptionSelector {
                 JavaInnerBuilderOption.WITH_VALIDATE_METHOD,
                 'v'
         ));
-        options.add(new TextAreaOption(
-                JavaInnerBuilderOption.WITH_BUILDER_CLASS_ANNOTATIONS,
-                5,
-                40,
-                "Use fully qualified class names separated by new lines."
-        ));
         return options;
     }
 
