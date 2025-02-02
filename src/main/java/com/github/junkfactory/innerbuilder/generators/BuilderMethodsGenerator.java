@@ -163,7 +163,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
                 .append(' ')
                 .append(fieldName)
                 .append('(')
-                .append(fieldType.getPresentableText())
+                .append(fieldType.getCanonicalText())
                 .append(' ')
                 .append(fieldName)
                 .append(") {")
