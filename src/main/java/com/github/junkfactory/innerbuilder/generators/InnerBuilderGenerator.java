@@ -60,7 +60,6 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
                 .build();
         var result = generatorFactory.createBuilderClassGenerator(generatorParams, params).generate();
         generationResult.merge(result);
-        targetClass.add(builderClass);
         var codeStyleManager = generatorParams.psi().codeStyleManager();
         generationResult.when(ANNOTATIONS_ADDED, () -> codeStyleManager.shortenClassReferences(targetClass));
         generationResult.when(IMPORTS_ADDED, () -> codeStyleManager.removeRedundantImports((PsiJavaFile) file));
@@ -155,7 +154,7 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
     private PsiClass findOrCreateBuilderClass(final PsiClass targetClass) {
         var builderClass = targetClass.findInnerClassByName(BUILDER_CLASS_NAME, false);
         if (builderClass == null) {
-            return createBuilderClass(targetClass);
+            return (PsiClass) targetClass.add(createBuilderClass(targetClass));
         }
 
         return builderClass;
