@@ -20,7 +20,7 @@ class BuilderClassGenerator extends AbstractGenerator implements Generator {
         //builder constructor
         var builderClass = builderClassParams.builderClass();
         var builderConstructor = generateBuilderConstructor();
-        addMethod(builderClass, null, builderConstructor, false);
+        addMethod(builderClass.psiClass(), null, builderConstructor, false);
 
         var fieldsGenerator = generatorFactory.createBuilderFieldsGenerator(generatorParams, builderClassParams);
         fieldsGenerator.generate();
