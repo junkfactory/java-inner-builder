@@ -30,10 +30,11 @@ class BuilderFieldsGenerator extends AbstractGenerator implements FieldsGenerato
     public GenerationResult generate() {
         PsiField lastAddedField = null;
         for (var fieldMember : generatorParams.psi().selectedFields()) {
-            lastAddedField = createOrUpdateField(builderClassParams.builderClass(), fieldMember, lastAddedField);
+            lastAddedField =
+                    createOrUpdateField(builderClassParams.builderClass().psiClass(), fieldMember, lastAddedField);
             fields.add(lastAddedField);
         }
-        cleanupFields(builderClassParams.builderClass());
+        cleanupFields(builderClassParams.builderClass().psiClass());
         return GenerationResult.NO_RESULT;
     }
 

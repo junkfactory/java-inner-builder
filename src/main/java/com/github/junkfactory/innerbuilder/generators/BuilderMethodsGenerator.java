@@ -34,21 +34,21 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         var targetClass = builderClassParams.targetClass();
         var targetModifierList = Objects.requireNonNull(targetClass.getModifierList());
         isPublic = targetModifierList.hasModifierProperty(PsiModifier.PUBLIC);
-        PsiElement lastAddedElement = null;
+        PsiElement lastAddedElement = findFirstConstructor(builderClass.psiClass());
         for (var field : fieldsGenerator.getFields()) {
             var setterMethod = generateFieldMethod(field);
             field.putCopyableUserData(UserDataKey.METHOD_REF, setterMethod.getName());
-            lastAddedElement = addMethod(builderClass, lastAddedElement, setterMethod, false);
+            lastAddedElement = addMethod(builderClass.psiClass(), lastAddedElement, setterMethod, false);
         }
 
         var options = generatorParams.options();
         if (options.contains(JavaInnerBuilderOption.WITH_VALIDATE_METHOD)) {
             var validateMethod = generateValidateMethod();
-            addMethod(builderClass, lastAddedElement, validateMethod, false);
+            lastAddedElement = addMethod(builderClass.psiClass(), lastAddedElement, validateMethod, false);
         }
 
         var buildMethod = generateBuildMethod(targetClass);
-        addMethod(builderClass, null, buildMethod, builderClassParams.targetClass().isRecord());
+        addMethod(builderClass.psiClass(), lastAddedElement, buildMethod, builderClassParams.targetClass().isRecord());
         return generationResult;
     }
 
@@ -92,7 +92,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         if (isPublic) {
             methodText.append(PsiModifier.PUBLIC).append(' ');
         }
-        methodText.append(BUILDER_CLASS_NAME)
+        methodText.append(builderClassParams.builderClass().builderType().getPresentableText())
                 .append(' ')
                 .append(methodName)
                 .append('(')
@@ -130,7 +130,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         if (isPublic) {
             methodText.append(PsiModifier.PUBLIC).append(' ');
         }
-        methodText.append(BUILDER_CLASS_NAME)
+        methodText.append(builderClassParams.builderClass().builderType().getPresentableText())
                 .append(' ')
                 .append(methodName)
                 .append('(')
@@ -159,7 +159,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         if (isPublic) {
             methodText.append(PsiModifier.PUBLIC).append(' ');
         }
-        methodText.append(BUILDER_CLASS_NAME)
+        methodText.append(builderClassParams.builderClass().builderType().getPresentableText())
                 .append(' ')
                 .append(fieldName)
                 .append('(')
@@ -180,10 +180,11 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
     }
 
     private PsiMethod generateBuildMethod(PsiClass targetClass) {
+        var targetClassName = Utils.buildClassName(targetClass.getName(), targetClass);
         var buildMethod = new StringBuilder()
                 .append(isPublic ? PsiModifier.PUBLIC : EMPTY)
                 .append(isPublic ? SPACE : EMPTY)
-                .append(targetClass.getName())
+                .append(targetClassName.className())
                 .append(" build() {");
         if (generatorParams.options().contains(JavaInnerBuilderOption.WITH_VALIDATE_METHOD)) {
             buildMethod.append("validate();");
@@ -193,13 +194,13 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
                     .map(PsiField::getName)
                     .collect(Collectors.joining(", "));
             buildMethod.append("return new ")
-                    .append(targetClass.getName())
+                    .append(targetClassName.instanceClassName())
                     .append("(")
                     .append(recordParameters)
                     .append(");");
         } else {
             buildMethod.append("return new ")
-                    .append(targetClass.getName())
+                    .append(targetClassName.instanceClassName())
                     .append("(this);");
         }
         buildMethod.append("}");

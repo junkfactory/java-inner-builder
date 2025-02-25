@@ -2,6 +2,7 @@ package com.github.junkfactory.innerbuilder.generators;
 
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
@@ -18,6 +19,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+
+import static com.github.junkfactory.innerbuilder.generators.AbstractGenerator.BUILDER_METHOD_NAME;
 
 public class Utils {
     @NonNls
@@ -147,9 +150,49 @@ public class Utils {
                 .toList();
     }
 
-    public static String parseType(String text) {
-        var parenthesisIndex = text.indexOf('(');
-        return parenthesisIndex == -1 ? text : text.substring(0, parenthesisIndex);
+    public static boolean isGenericType(PsiType psiType) {
+        // Check if the type is a PsiClassType
+        if (psiType instanceof PsiClassType classType) {
+            // Check if it has type parameters
+            return classType.getParameters().length > 0;
+        }
+        return false;
+    }
+
+    public static BuilderClassName buildClassName(String className, PsiClass targetClass) {
+        var builderClassName = new StringBuilder(className);
+        var typeParameters = targetClass.getTypeParameters();
+        if (typeParameters.length > 0) {
+            builderClassName.append('<');
+            for (int i = 0, l = typeParameters.length; i < l; i++) {
+                var typeParameter = typeParameters[i];
+                builderClassName.append(typeParameter.getName());
+                if (i < l - 1) {
+                    builderClassName.append(", ");
+                }
+            }
+            builderClassName.append('>');
+            return new BuilderClassName(builderClassName.toString(), "%s<>".formatted(className));
+        }
+        return new BuilderClassName(builderClassName.toString(), className);
+    }
+
+    public static String buildBuilderMethodName(BuilderClass builderClass) {
+        var psiClassType = (PsiClassType) builderClass.builderType();
+        if (builderClass.genericType()) {
+            var typeParameters = psiClassType.getParameters();
+            var typeParameterNames = new StringBuilder();
+            for (int i = 0, l = typeParameters.length; i < l; i++) {
+                var typeParameter = typeParameters[i];
+                typeParameterNames.append(typeParameter.getPresentableText());
+                if (i < l - 1) {
+                    typeParameterNames.append(", ");
+                }
+            }
+            return String.format("<%s> %s %s(){}", typeParameterNames,
+                    psiClassType.getPresentableText(), BUILDER_METHOD_NAME);
+        }
+        return String.format("%s %s(){}", psiClassType.getPresentableText(), BUILDER_METHOD_NAME);
     }
 
 }

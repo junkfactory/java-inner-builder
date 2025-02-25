@@ -66,6 +66,11 @@ abstract class AbstractGenerator {
         return generatorParams.psi().codeStyleManager().addImport((PsiJavaFile) generatorParams.psi().file(), psiClass);
     }
 
+    protected PsiMethod findFirstConstructor(PsiClass target) {
+        var constructors = target.getConstructors();
+        return constructors.length > 0 ? constructors[0] : null;
+    }
+
     private PsiMethod findConstructor(PsiClass target, PsiMethod newMethod) {
         for (var constructor : target.getConstructors()) {
             if (Utils.areParameterListsEqual(constructor.getParameterList(), newMethod.getParameterList())) {
