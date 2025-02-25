@@ -1,6 +1,5 @@
 package com.github.junkfactory.innerbuilder.generators;
 
-import com.github.junkfactory.innerbuilder.generators.BuilderMethodsGenerator.BuilderClassName;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiClassType;
@@ -21,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static com.github.junkfactory.innerbuilder.generators.AbstractGenerator.BUILDER_CLASS_NAME;
+import static com.github.junkfactory.innerbuilder.generators.AbstractGenerator.BUILDER_METHOD_NAME;
 
 public class Utils {
     @NonNls
@@ -178,25 +177,22 @@ public class Utils {
         return new BuilderClassName(builderClassName.toString(), className);
     }
 
-    public static String buildBuilderMethodName(PsiType builderType) {
-        var methodName = BUILDER_CLASS_NAME;
-        if (isGenericType(builderType)) {
-            var psiClassType = (PsiClassType) builderType;
+    public static String buildBuilderMethodName(BuilderClass builderClass) {
+        var psiClassType = (PsiClassType) builderClass.builderType();
+        if (builderClass.genericType()) {
             var typeParameters = psiClassType.getParameters();
-            if (typeParameters.length > 0) {
-                var typeParameterNames = new StringBuilder();
-                for (int i = 0, l = typeParameters.length; i < l; i++) {
-                    var typeParameter = typeParameters[i];
-                    typeParameterNames.append(typeParameter.getPresentableText());
-                    if (i < l - 1) {
-                        typeParameterNames.append(", ");
-                    }
+            var typeParameterNames = new StringBuilder();
+            for (int i = 0, l = typeParameters.length; i < l; i++) {
+                var typeParameter = typeParameters[i];
+                typeParameterNames.append(typeParameter.getPresentableText());
+                if (i < l - 1) {
+                    typeParameterNames.append(", ");
                 }
-                methodName = String.format("<%s> %s %s(){}", typeParameterNames,
-                        builderType.getPresentableText(), methodName);
             }
+            return String.format("<%s> %s %s(){}", typeParameterNames,
+                    psiClassType.getPresentableText(), BUILDER_METHOD_NAME);
         }
-        return methodName;
+        return String.format("%s %s(){}", psiClassType.getPresentableText(), BUILDER_METHOD_NAME);
     }
 
 }

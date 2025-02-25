@@ -1,6 +1,5 @@
 package com.github.junkfactory.innerbuilder.generators;
 
-import com.github.junkfactory.innerbuilder.generators.BuilderMethodsGenerator.BuilderClassName;
 import com.github.junkfactory.innerbuilder.ui.JavaInnerBuilderOption;
 import com.intellij.codeInsight.generation.PsiFieldMember;
 import com.intellij.psi.PsiClass;
@@ -8,7 +7,6 @@ import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
-import com.intellij.psi.PsiType;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.util.PropertyUtilBase;
 import com.intellij.psi.util.PsiUtil;
@@ -22,12 +20,6 @@ import static com.github.junkfactory.innerbuilder.generators.GenerationResult.Co
 import static com.github.junkfactory.innerbuilder.generators.GenerationResult.NO_RESULT;
 
 class InnerBuilderGenerator extends AbstractGenerator implements Generator {
-
-    public record BuilderClass(PsiClass psiClass,
-                               PsiType builderType,
-                               BuilderClassName builderClassName,
-                               boolean genericType) {
-    }
 
     InnerBuilderGenerator(GeneratorFactory generatorFactory, GeneratorParams generatorParams) {
         super(generatorFactory, generatorParams);
@@ -103,7 +95,7 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
 
     private PsiMethod generateStaticBuilderMethod(PsiClass targetClass, BuilderClass builderClass) {
         var psiElementFactory = generatorParams.psi().factory();
-        var methodName = Utils.buildBuilderMethodName(builderClass.builderType());
+        var methodName = Utils.buildBuilderMethodName(builderClass);
         var newBuilderMethod = psiElementFactory.createMethodFromText(methodName, targetClass);
         PsiUtil.setModifierProperty(newBuilderMethod, PsiModifier.STATIC, true);
         PsiUtil.setModifierProperty(newBuilderMethod, PsiModifier.PUBLIC, true);

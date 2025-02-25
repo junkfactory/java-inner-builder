@@ -1,6 +1,5 @@
 package com.github.junkfactory.innerbuilder.generators;
 
-import com.github.junkfactory.innerbuilder.generators.InnerBuilderGenerator.BuilderClass;
 import com.intellij.psi.PsiClass;
 
 public record BuilderClassParams(PsiClass targetClass,

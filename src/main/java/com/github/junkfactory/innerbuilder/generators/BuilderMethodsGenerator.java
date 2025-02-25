@@ -14,9 +14,6 @@ import java.util.stream.Collectors;
 
 class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenerator {
 
-    public record BuilderClassName(String className, String instanceClassName) {
-    }
-
     private final BuilderClassParams builderClassParams;
     private final FieldsGenerator fieldsGenerator;
 
@@ -37,7 +34,7 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         var targetClass = builderClassParams.targetClass();
         var targetModifierList = Objects.requireNonNull(targetClass.getModifierList());
         isPublic = targetModifierList.hasModifierProperty(PsiModifier.PUBLIC);
-        PsiElement lastAddedElement = null;
+        PsiElement lastAddedElement = findFirstConstructor(builderClass.psiClass());
         for (var field : fieldsGenerator.getFields()) {
             var setterMethod = generateFieldMethod(field);
             field.putCopyableUserData(UserDataKey.METHOD_REF, setterMethod.getName());
@@ -47,11 +44,11 @@ class BuilderMethodsGenerator extends AbstractGenerator implements MethodsGenera
         var options = generatorParams.options();
         if (options.contains(JavaInnerBuilderOption.WITH_VALIDATE_METHOD)) {
             var validateMethod = generateValidateMethod();
-            addMethod(builderClass.psiClass(), lastAddedElement, validateMethod, false);
+            lastAddedElement = addMethod(builderClass.psiClass(), lastAddedElement, validateMethod, false);
         }
 
         var buildMethod = generateBuildMethod(targetClass);
-        addMethod(builderClass.psiClass(), null, buildMethod, builderClassParams.targetClass().isRecord());
+        addMethod(builderClass.psiClass(), lastAddedElement, buildMethod, builderClassParams.targetClass().isRecord());
         return generationResult;
     }
 
