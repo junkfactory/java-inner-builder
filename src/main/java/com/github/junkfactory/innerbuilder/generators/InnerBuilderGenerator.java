@@ -158,19 +158,19 @@ class InnerBuilderGenerator extends AbstractGenerator implements Generator {
     @NotNull
     private BuilderClass findOrCreateBuilderClass(final PsiClass targetClass) {
         var builderClassName = Utils.buildClassName(BUILDER_CLASS_NAME, targetClass);
-        var builderClass = targetClass.findInnerClassByName(builderClassName.className(), false);
-        if (builderClass == null) {
-            builderClass = (PsiClass) targetClass.add(createBuilderClass(targetClass, builderClassName.className()));
+        var psiClass = targetClass.findInnerClassByName(BUILDER_CLASS_NAME, false);
+        if (psiClass == null) {
+            psiClass = (PsiClass) targetClass.add(createBuilderClass(targetClass, builderClassName.className()));
         }
 
         var psiElementFactory = generatorParams.psi().factory();
         var builderType = psiElementFactory.createTypeFromText(builderClassName.className(), targetClass);
-        return new BuilderClass(builderClass, builderType, builderClassName, Utils.isGenericType(builderType));
+        return new BuilderClass(psiClass, builderType, builderClassName, Utils.isGenericType(builderType));
     }
 
     @NotNull
     private PsiClass createBuilderClass(final PsiClass targetClass, String builderClassName) {
-        String classDef = "public static final class " +
+        var classDef = "public static final class " +
                 builderClassName +
                 " {}" +
                 System.lineSeparator();
