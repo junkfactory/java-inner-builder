@@ -1,7 +1,7 @@
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
-    id("org.jetbrains.intellij.platform") version "2.3.0"
+    id("org.jetbrains.intellij.platform") version "2.5.0"
 }
 
 group = "com.github.junkfactory"
@@ -28,6 +28,13 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "242"
+            untilBuild = "252.*"
+        }
+    }
+
+    pluginVerification {
+        ides {
+            recommended()
         }
     }
 }
@@ -42,11 +49,6 @@ tasks {
     }
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         kotlinOptions.jvmTarget = "21"
-    }
-
-    patchPluginXml {
-        sinceBuild.set("242")
-        untilBuild.set("252.*")
     }
 
     signPlugin {
